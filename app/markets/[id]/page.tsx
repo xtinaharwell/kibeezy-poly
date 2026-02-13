@@ -37,6 +37,13 @@ export default function MarketDetail() {
             return;
         }
 
+        // Check if user is logged in first
+        const user = localStorage.getItem("poly_user");
+        if (!user) {
+            setMessage("Please log in to place a bet");
+            return;
+        }
+
         setPlacingBet(true);
         setMessage("");
 

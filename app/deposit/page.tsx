@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import Navbar from "@/components/Navbar";
 import { ArrowLeft, Wallet, Smartphone, CreditCard, ChevronRight, CheckCircle2 } from "lucide-react";
 
 const PRESET_AMOUNTS = [500, 1000, 2000, 5000];
@@ -11,9 +12,56 @@ export default function DepositPage() {
     const [method, setMethod] = useState<"mpesa" | "card">("mpesa");
     const [step, setStep] = useState<"input" | "processing" | "success">("input");
     const [error, setError] = useState("");
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+    // Check authentication on component mount
+    useEffect(() => {
+        const checkAuth = async () => {
+            try {
+                // First check localStorage for quick state restore
+                const storedUser = localStorage.getItem("poly_user");
+                if (storedUser) {
+                    console.log("User found in localStorage:", JSON.parse(storedUser));
+                    setIsAuthenticated(true);
+                    return;
+                }
+
+                // If no localStorage, verify with API
+                console.log("Checking authentication with API...");
+                const response = await fetch("http://127.0.0.1:8000/api/auth/check/", {
+                    method: "GET",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                });
+                
+                console.log("Auth check response status:", response.status);
+                const data = await response.json();
+                console.log("Auth check response data:", data);
+                
+                if (response.ok && data.authenticated) {
+                    setIsAuthenticated(true);
+                    // Store in localStorage for next time
+                    localStorage.setItem("poly_user", JSON.stringify(data.user));
+                } else {
+                    setIsAuthenticated(false);
+                }
+            } catch (err) {
+                console.error("Auth check failed:", err);
+                setIsAuthenticated(false);
+            }
+        };
+
+        checkAuth();
+    }, []);
 
     const handleDeposit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        if (!isAuthenticated) {
+            setError("Please log in first");
+            return;
+        }
+
         setStep("processing");
         setError("");
 
@@ -41,13 +89,52 @@ export default function DepositPage() {
         }
     };
 
+    // Loading state
+    if (isAuthenticated === null) {
+        return (
+            <div className="min-h-screen bg-[#fbfbfd]">
+                <Navbar />
+                <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)] p-6">
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="h-12 w-12 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
+                        <p className="font-bold text-black text-lg">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Not authenticated state
+    if (!isAuthenticated) {
+        return (
+            <div className="min-h-screen bg-[#fbfbfd]">
+                <Navbar />
+                <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)] p-6">
+                    <div className="apple-card w-full max-w-[400px] p-8 text-center">
+                        <h1 className="text-2xl font-bold text-black mb-3">Please Log In</h1>
+                        <p className="text-muted-foreground mb-6">You need to be logged in to make deposits.</p>
+                        <Link
+                            href="/login"
+                            className="w-full h-12 bg-black text-white rounded-full flex items-center justify-center font-bold transition-all hover:opacity-90"
+                        >
+                            Go to Login
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     if (step === "processing") {
         return (
-            <div className="min-h-screen bg-[#fbfbfd] flex flex-col items-center justify-center p-6">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="h-12 w-12 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
-                    <p className="font-bold text-black text-lg">Processing Deposit...</p>
-                    <p className="text-muted-foreground text-sm">Please check your phone for the M-Pesa prompt.</p>
+            <div className="min-h-screen bg-[#fbfbfd] flex flex-col">
+                <Navbar />
+                <div className="flex-1 flex flex-col items-center justify-center p-6">
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="h-12 w-12 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
+                        <p className="font-bold text-black text-lg">Processing Deposit...</p>
+                        <p className="text-muted-foreground text-sm">Please check your phone for the M-Pesa prompt.</p>
+                    </div>
                 </div>
             </div>
         );
@@ -55,27 +142,31 @@ export default function DepositPage() {
 
     if (step === "success") {
         return (
-            <div className="min-h-screen bg-[#fbfbfd] flex flex-col items-center justify-center p-6 text-center">
-                <div className="apple-card w-full max-w-[440px] p-8 flex flex-col items-center">
-                    <div className="h-20 w-20 bg-apple-green/10 rounded-full flex items-center justify-center mb-6">
-                        <CheckCircle2 className="h-10 w-10 text-apple-green" />
+            <div className="min-h-screen bg-[#fbfbfd] flex flex-col">
+                <Navbar />
+                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+                    <div className="apple-card w-full max-w-[440px] p-8 flex flex-col items-center">
+                        <div className="h-20 w-20 bg-apple-green/10 rounded-full flex items-center justify-center mb-6">
+                            <CheckCircle2 className="h-10 w-10 text-apple-green" />
+                        </div>
+                        <h1 className="text-3xl font-bold text-black mb-2">Deposit Successful</h1>
+                        <p className="text-muted-foreground mb-8">KSH {amount} has been added to your balance.</p>
+                        <Link
+                            href="/"
+                            className="w-full h-12 bg-black text-white rounded-full flex items-center justify-center font-bold transition-all hover:opacity-90"
+                        >
+                            Back to Markets
+                        </Link>
                     </div>
-                    <h1 className="text-3xl font-bold text-black mb-2">Deposit Successful</h1>
-                    <p className="text-muted-foreground mb-8">KSH {amount} has been added to your balance.</p>
-                    <Link
-                        href="/"
-                        className="w-full h-12 bg-black text-white rounded-full flex items-center justify-center font-bold transition-all hover:opacity-90"
-                    >
-                        Back to Markets
-                    </Link>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-[#fbfbfd] pt-24 pb-12 px-4">
-            <div className="max-w-[1000px] mx-auto">
+        <div className="min-h-screen bg-[#fbfbfd] pb-12">
+            <Navbar />
+            <div className="pt-24 pb-12 px-4">
                 <div className="flex items-center gap-4 mb-8">
                     <Link
                         href="/"

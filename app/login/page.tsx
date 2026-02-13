@@ -16,6 +16,7 @@ export default function Login() {
         setError("");
 
         try {
+            console.log("Logging in with phone:", phoneNumber);
             const response = await fetch("http://127.0.0.1:8000/api/auth/login/", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -23,17 +24,32 @@ export default function Login() {
                 credentials: "include",
             });
 
+            console.log("Login response status:", response.status);
             const data = await response.json();
+            
             if (response.ok) {
+                console.log("Login successful, user:", data.user);
                 // Store user data for the Navbar
                 localStorage.setItem("poly_user", JSON.stringify(data.user));
                 window.dispatchEvent(new Event("poly_auth_change"));
+                
+                // Verify session was set before redirecting
+                console.log("Verifying session...");
+                const checkResponse = await fetch("http://127.0.0.1:8000/api/auth/check/", {
+                    method: "GET",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                });
+                const checkData = await checkResponse.json();
+                console.log("Session check:", checkData);
+                
                 window.location.href = "/";
             } else {
-
+                console.log("Login failed:", data.error);
                 setError(data.error || "Login failed");
             }
         } catch (err) {
+            console.error("Login error:", err);
             setError("Connection error. Is the backend running?");
         } finally {
             setLoading(false);

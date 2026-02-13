@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Command, LogOut, Menu, X, Wallet, ArrowUpCircle } from "lucide-react";
+import { Search, Command, LogOut, Menu, X, Wallet, ArrowUpCircle, BarChart3, Settings } from "lucide-react";
 
 const navigation = [
     { name: "Markets", href: "/" },
@@ -14,21 +14,43 @@ const navigation = [
 
 export default function Navbar() {
     const pathname = usePathname();
-    const [user, setUser] = useState<{ full_name: string; phone_number: string } | null>(null);
+    const [user, setUser] = useState<{ full_name: string; phone_number: string; balance?: string } | null>(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [balance, setBalance] = useState<string>("0.00");
 
     useEffect(() => {
         const checkUser = () => {
             const storedUser = localStorage.getItem("poly_user");
             if (storedUser) {
                 try {
-                    setUser(JSON.parse(storedUser));
+                    const parsed = JSON.parse(storedUser);
+                    setUser(parsed);
+                    // Fetch latest balance from API
+                    fetchBalance();
                 } catch (e) {
                     localStorage.removeItem("poly_user");
                     setUser(null);
                 }
             } else {
                 setUser(null);
+            }
+        };
+
+        const fetchBalance = async () => {
+            try {
+                const response = await fetch("http://127.0.0.1:8000/api/markets/dashboard/", {
+                    method: "GET",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setBalance(parseFloat(data.user.balance).toFixed(2));
+                }
+            } catch (err) {
+                console.error("Failed to fetch balance", err);
             }
         };
 
@@ -40,8 +62,21 @@ export default function Navbar() {
     const handleLogout = () => {
         localStorage.removeItem("poly_user");
         setUser(null);
+        setIsProfileOpen(false);
         window.location.href = "/";
     };
+
+    // Close profile menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (!(e.target as HTMLElement).closest('.profile-menu')) {
+                setIsProfileOpen(false);
+            }
+        };
+
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, []);
 
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 apple-glass">
@@ -78,18 +113,24 @@ export default function Navbar() {
                 </div>
 
                 <div className="flex items-center gap-3 md:gap-5">
-                    <div className="relative group hidden sm:block">
-                        <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                        <input
-                            type="text"
-                            placeholder="Search"
-                            className="h-7 w-32 rounded-md bg-muted pl-8 pr-2 text-[12px] placeholder:text-muted-foreground focus:w-48 focus:outline-none transition-all duration-300"
-                        />
-                    </div>
+                    {/* Balance Display */}
+                    {user && (
+                        <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-apple-green/10 to-apple-blue/10 border border-apple-green/20">
+                            <Wallet className="h-4 w-4 text-apple-green" />
+                            <span className="text-[11px] md:text-[12px] font-bold text-black">KSh <span className="text-apple-green font-black">{balance}</span></span>
+                        </div>
+                    )}
 
                     <div className="flex items-center gap-2">
                         {user ? (
                             <div className="flex items-center gap-2 md:gap-4">
+                                <Link
+                                    href="/dashboard"
+                                    className="hidden sm:flex items-center gap-2 px-3 md:px-4 py-1.5 rounded-full bg-black text-white text-[11px] md:text-[12px] font-bold transition-opacity hover:opacity-90"
+                                >
+                                    <BarChart3 className="h-3.5 w-3.5" />
+                                    Dashboard
+                                </Link>
                                 <Link
                                     href="/deposit"
                                     className="hidden sm:flex items-center gap-2 px-3 md:px-4 py-1.5 rounded-full bg-apple-green text-white text-[11px] md:text-[12px] font-bold transition-opacity hover:opacity-90"
@@ -97,19 +138,47 @@ export default function Navbar() {
                                     <Wallet className="h-3.5 w-3.5" />
                                     Deposit
                                 </Link>
-                                <div className="flex items-center gap-2 px-2 md:px-3 py-1 md:py-1.5 rounded-full bg-muted">
-                                    <div className="h-5 w-5 rounded-full bg-black flex items-center justify-center text-[10px] text-white font-bold">
-                                        {user.full_name.charAt(0)}
-                                    </div>
-                                    <span className="hidden xs:block text-[11px] md:text-[12px] font-bold text-black">{user.full_name.split(' ')[0]}</span>
+                                <div className="relative profile-menu">
+                                    <button 
+                                        onClick={() => setIsProfileOpen(!isProfileOpen)}
+                                        className="flex items-center gap-2 px-2 md:px-3 py-1 md:py-1.5 rounded-full bg-muted hover:bg-[#e8e8ed] transition-colors"
+                                    >
+                                        <div className="h-5 w-5 rounded-full bg-black flex items-center justify-center text-[10px] text-white font-bold">
+                                            {user.full_name.charAt(0)}
+                                        </div>
+                                        <span className="hidden xs:block text-[11px] md:text-[12px] font-bold text-black">{user.full_name.split(' ')[0]}</span>
+                                    </button>
+                                    {isProfileOpen && (
+                                        <div className="absolute right-0 top-full mt-2 w-48 flex-col gap-1 bg-white border border-border rounded-lg shadow-lg z-50 p-2 flex">
+                                            <Link
+                                                href="/dashboard"
+                                                onClick={() => setIsProfileOpen(false)}
+                                                className="flex items-center gap-2 px-3 py-2 rounded-md text-black font-bold text-sm hover:bg-muted transition-all"
+                                            >
+                                                <BarChart3 className="h-4 w-4" />
+                                                Dashboard
+                                            </Link>
+                                            <Link
+                                                href="/admin"
+                                                onClick={() => setIsProfileOpen(false)}
+                                                className="flex items-center gap-2 px-3 py-2 rounded-md text-black font-bold text-sm hover:bg-muted transition-all"
+                                            >
+                                                <Settings className="h-4 w-4" />
+                                                Admin Panel
+                                            </Link>
+                                            <div className="border-t border-border my-1"></div>
+                                            <button
+                                                onClick={() => {
+                                                    handleLogout();
+                                                }}
+                                                className="flex items-center gap-2 px-3 py-2 rounded-md text-apple-red font-bold text-sm hover:bg-apple-red/5 transition-all"
+                                            >
+                                                <LogOut className="h-4 w-4" />
+                                                Logout
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
-                                <button
-                                    onClick={handleLogout}
-                                    className="p-1 px-2 rounded-full hover:bg-muted text-muted-foreground hover:text-apple-red transition-colors"
-                                    title="Logout"
-                                >
-                                    <LogOut className="h-4 w-4" />
-                                </button>
                             </div>
                         ) : (
                             <div className="flex items-center gap-1 md:gap-2">
@@ -169,14 +238,14 @@ export default function Navbar() {
                                 </div>
                             ) : (
                                 <div className="flex flex-col gap-4 mb-6">
-                                    <div className="flex items-center justify-between p-4 rounded-2xl bg-muted">
+                                    <div className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-b from-apple-green/10 to-apple-blue/10 border border-apple-green/20">
                                         <div className="flex items-center gap-3">
                                             <div className="h-10 w-10 rounded-full bg-black flex items-center justify-center text-sm text-white font-bold">
                                                 {user.full_name.charAt(0)}
                                             </div>
                                             <div>
                                                 <p className="font-bold text-black">{user.full_name}</p>
-                                                <p className="text-sm text-muted-foreground">{user.phone_number}</p>
+                                                <p className="text-sm text-apple-green font-semibold">KSh {balance}</p>
                                             </div>
                                         </div>
                                         <button
@@ -191,6 +260,14 @@ export default function Navbar() {
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
                                         <Link
+                                            href="/dashboard"
+                                            onClick={() => setIsMenuOpen(false)}
+                                            className="flex items-center justify-center gap-2 h-14 rounded-2xl bg-black text-white font-bold"
+                                        >
+                                            <BarChart3 className="h-5 w-5" />
+                                            Dashboard
+                                        </Link>
+                                        <Link
                                             href="/deposit"
                                             onClick={() => setIsMenuOpen(false)}
                                             className="flex items-center justify-center gap-2 h-14 rounded-2xl bg-apple-green text-white font-bold"
@@ -198,13 +275,23 @@ export default function Navbar() {
                                             <Wallet className="h-5 w-5" />
                                             Deposit
                                         </Link>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
                                         <Link
                                             href="/withdraw"
                                             onClick={() => setIsMenuOpen(false)}
-                                            className="flex items-center justify-center gap-2 h-14 rounded-2xl bg-black text-white font-bold"
+                                            className="flex items-center justify-center gap-2 h-14 rounded-2xl bg-muted border border-border text-black font-bold"
                                         >
                                             <ArrowUpCircle className="h-5 w-5" />
                                             Withdraw
+                                        </Link>
+                                        <Link
+                                            href="/admin"
+                                            onClick={() => setIsMenuOpen(false)}
+                                            className="flex items-center justify-center gap-2 h-14 rounded-2xl bg-muted border border-border text-black font-bold"
+                                        >
+                                            <Settings className="h-5 w-5" />
+                                            Admin
                                         </Link>
                                     </div>
                                 </div>

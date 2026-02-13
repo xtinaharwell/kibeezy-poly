@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import MarketCard from "@/components/MarketCard";
+import { Search } from "lucide-react";
 
 const categories = ["All", "Politics", "Sports", "Crypto", "Economy", "Environment"];
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [markets, setMarkets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,17 +30,32 @@ export default function Home() {
     fetchMarkets();
   }, []);
 
-  const filteredMarkets = activeCategory === "All"
-    ? markets
-    : markets.filter(m => m.category === activeCategory);
+  const filteredMarkets = markets.filter(m => {
+    const matchCategory = activeCategory === "All" || m.category === activeCategory;
+    const matchSearch = m.question.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchCategory && matchSearch;
+  });
 
   return (
     <div className="min-h-screen bg-[#fbfbfd] font-sans pb-32">
       <Navbar />
 
       <main className="mx-auto pt-24 md:pt-32 max-w-[1200px] px-4 md:px-6">
-        {/* Header Section */}
-        <div className="mb-8 md:mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        {/* Search and Filter Section */}
+        <div className="mb-8 md:mb-12 space-y-4">
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search markets..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-12 rounded-xl bg-white border border-border pl-12 pr-4 text-sm font-medium placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-black transition-all"
+            />
+          </div>
+
+          {/* Category Filter */}
           <div className="relative group w-full overflow-hidden">
             {/* Gradient fade for scrolling categories */}
             <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#fbfbfd] to-transparent z-10 pointer-events-none md:hidden" />

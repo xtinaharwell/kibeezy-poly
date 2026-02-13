@@ -28,7 +28,7 @@ export const markets: Market[] = [
       { label: "Seahawks", probability: 69 },
       { label: "Patriots", probability: 31 }
     ],
-    volume: "$10m",
+    volume: "KSh 10M",
     image: "https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=64&h=64&fit=crop",
     endDate: "Feb 09, 2:30 AM"
   },
@@ -41,7 +41,7 @@ export const markets: Market[] = [
       { label: "February 13", probability: 12 },
       { label: "February 20", probability: 18 }
     ],
-    volume: "$175m",
+    volume: "KSh 175M",
     image: "https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?w=64&h=64&fit=crop",
     endDate: "Feb 28, 2026"
   },
@@ -51,7 +51,7 @@ export const markets: Market[] = [
     category: "Crypto",
     type: "updown",
     yesProbability: 76,
-    volume: "$25m",
+    volume: "KSh 25M",
     image: "https://images.unsplash.com/photo-1518546305927-5a555bb7020d?w=64&h=64&fit=crop",
     endDate: "LIVE",
     live: true
@@ -82,7 +82,7 @@ export const markets: Market[] = [
     category: "Politics",
     type: "binary",
     yesProbability: 14,
-    volume: "$167k",
+    volume: "KSh 167K",
     image: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=64&h=64&fit=crop",
     endDate: "Apr 15, 2026"
   },
@@ -95,7 +95,7 @@ export const markets: Market[] = [
       { label: "Not Traded", probability: 83 },
       { label: "Heat", probability: 7 }
     ],
-    volume: "$3m",
+    volume: "KSh 3M",
     image: "https://images.unsplash.com/photo-1504450758481-7338eba7524a?w=64&h=64&fit=crop",
     endDate: "Jun 1, 2026"
   },
@@ -105,7 +105,7 @@ export const markets: Market[] = [
     category: "Finance",
     type: "updown",
     yesProbability: 54,
-    volume: "$232k",
+    volume: "KSh 232K",
     image: "https://images.unsplash.com/photo-1611974714022-293e5454687d?w=64&h=64&fit=crop",
     endDate: "Feb 5, 2026"
   }

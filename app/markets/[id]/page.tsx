@@ -49,6 +49,7 @@ export default function MarketDetail() {
                     outcome,
                     amount: betAmount,
                 }),
+                credentials: "include",
             });
 
             const data = await response.json();

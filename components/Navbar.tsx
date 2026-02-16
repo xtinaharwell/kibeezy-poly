@@ -39,7 +39,7 @@ export default function Navbar() {
 
         const fetchBalance = async () => {
             try {
-                const response = await fetch("http://127.0.0.1:8000/api/markets/dashboard/", {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/dashboard/`, {
                     method: "GET",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",

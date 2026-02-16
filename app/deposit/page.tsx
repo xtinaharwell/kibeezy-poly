@@ -28,7 +28,7 @@ export default function DepositPage() {
 
                 // If no localStorage, verify with API
                 console.log("Checking authentication with API...");
-                const response = await fetch("http://127.0.0.1:8000/api/auth/check/", {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/check/`, {
                     method: "GET",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
@@ -66,7 +66,7 @@ export default function DepositPage() {
         setError("");
 
         try {
-            const response = await fetch("http://127.0.0.1:8000/api/payments/stk-push/", {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payments/stk-push/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ amount }),

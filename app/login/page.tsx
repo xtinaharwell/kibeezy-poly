@@ -17,7 +17,7 @@ export default function Login() {
 
         try {
             console.log("Logging in with phone:", phoneNumber);
-            const response = await fetch("http://127.0.0.1:8000/api/auth/login/", {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/login/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ phone_number: phoneNumber, pin }),
@@ -35,7 +35,7 @@ export default function Login() {
                 
                 // Verify session was set before redirecting
                 console.log("Verifying session...");
-                const checkResponse = await fetch("http://127.0.0.1:8000/api/auth/check/", {
+                const checkResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/check/`, {
                     method: "GET",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",

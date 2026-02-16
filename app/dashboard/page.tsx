@@ -17,7 +17,7 @@ export default function Dashboard() {
     useEffect(() => {
         const loadDashboard = async () => {
             try {
-                const response = await fetch("http://127.0.0.1:8000/api/markets/dashboard/", {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/dashboard/`, {
                     method: "GET",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
@@ -36,7 +36,7 @@ export default function Dashboard() {
                 }
 
                 // Load transaction history
-                const historyResponse = await fetch("http://127.0.0.1:8000/api/markets/history/", {
+                const historyResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/history/`, {
                     method: "GET",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",

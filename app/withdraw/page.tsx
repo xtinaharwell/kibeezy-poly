@@ -22,7 +22,7 @@ export default function Withdraw() {
             }
 
             try {
-                const response = await fetch("http://127.0.0.1:8000/api/auth/check/", {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/check/`, {
                     method: "GET",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
@@ -61,7 +61,7 @@ export default function Withdraw() {
         setSuccess("");
 
         try {
-            const response = await fetch("http://127.0.0.1:8000/api/markets/withdraw/", {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/withdraw/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",

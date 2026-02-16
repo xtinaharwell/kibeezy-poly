@@ -27,7 +27,7 @@ export default function AdminPanel() {
 
     const loadMarkets = async () => {
         try {
-            const response = await fetch("http://127.0.0.1:8000/api/markets/admin/markets/", {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/admin/markets/`, {
                 method: "GET",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -56,7 +56,7 @@ export default function AdminPanel() {
         }
 
         try {
-            const response = await fetch("http://127.0.0.1:8000/api/markets/admin/create/", {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/admin/create/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -81,7 +81,7 @@ export default function AdminPanel() {
         setResolvingMarket(marketId);
 
         try {
-            const response = await fetch("http://127.0.0.1:8000/api/markets/admin/resolve/", {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/admin/resolve/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",

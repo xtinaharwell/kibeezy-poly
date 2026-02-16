@@ -104,47 +104,6 @@ export default function Home() {
           </div>
         )}
       </main>
-
-      <footer className="mt-24 md:mt-40 border-t border-border bg-white py-12 md:py-20">
-        <div className="mx-auto max-w-[1200px] px-6">
-          <div className="text-xl md:text-2xl font-bold tracking-tighter mb-8 md:mb-12">
-            poly.co.ke
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 text-[12px] md:text-sm">
-            <div className="flex flex-col gap-3 md:gap-4">
-              <span className="font-bold">Platform</span>
-              <a href="#" className="text-muted-foreground hover:text-black">Markets</a>
-              <a href="#" className="text-muted-foreground hover:text-black">Activity</a>
-              <a href="#" className="text-muted-foreground hover:text-black">Leaderboard</a>
-            </div>
-            <div className="flex flex-col gap-3 md:gap-4">
-              <span className="font-bold">Company</span>
-              <a href="#" className="text-muted-foreground hover:text-black">About</a>
-              <a href="#" className="text-muted-foreground hover:text-black">Blog</a>
-              <a href="#" className="text-muted-foreground hover:text-black">Careers</a>
-            </div>
-            <div className="flex flex-col gap-3 md:gap-4">
-              <span className="font-bold sm:block hidden">Support</span>
-              <a href="#" className="text-muted-foreground hover:text-black sm:block hidden">Docs</a>
-              <a href="#" className="text-muted-foreground hover:text-black sm:block hidden">Help Center</a>
-              <a href="#" className="text-muted-foreground hover:text-black sm:block hidden">Contact</a>
-            </div>
-            <div className="flex flex-col gap-3 md:gap-4">
-              <span className="font-bold sm:block hidden">Legal</span>
-              <a href="#" className="text-muted-foreground hover:text-black sm:block hidden">Privacy</a>
-              <a href="#" className="text-muted-foreground hover:text-black sm:block hidden">Terms</a>
-              <a href="#" className="text-muted-foreground hover:text-black sm:block hidden">Disclaimer</a>
-            </div>
-          </div>
-          <div className="mt-12 md:mt-20 pt-8 border-t border-border flex flex-col md:flex-row justify-between gap-4 text-[10px] md:text-xs font-medium text-muted-foreground">
-            <p>© 2026 poly.co.ke. Designed for privacy and accuracy.</p>
-            <div className="flex gap-4 md:gap-6">
-              <span>Made in Nairobi</span>
-              <span className="text-black">HQ: Westlands, Nairobi</span>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

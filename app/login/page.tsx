@@ -62,7 +62,7 @@ export default function Login() {
                 <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-black text-white">
                     <Command className="h-6 w-6" />
                 </div>
-                <span className="text-xl font-bold tracking-tight text-black">poly.co.ke</span>
+                <span className="text-xl font-bold tracking-tight text-black">KASOKO</span>
             </Link>
 
             <div className="apple-card w-full max-w-[400px] p-10">
@@ -117,7 +117,7 @@ export default function Login() {
                 </form>
 
                 <p className="mt-8 text-center text-sm text-muted-foreground font-medium">
-                    New to poly.co.ke?{" "}
+                    New to KASOKO?{" "}
                     <Link href="/signup" className="text-apple-blue font-bold hover:underline">Create an account</Link>
                 </p>
             </div>

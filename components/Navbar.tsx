@@ -94,7 +94,7 @@ export default function Navbar() {
                             <Command className="h-4 w-4" />
                         </div>
                         <span className="text-sm font-bold tracking-tight">
-                            poly.co.ke
+                            KASOKO
                         </span>
                     </Link>
 

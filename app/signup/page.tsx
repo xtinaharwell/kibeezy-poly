@@ -52,11 +52,11 @@ export default function Signup() {
                 <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-black text-white">
                     <Command className="h-6 w-6" />
                 </div>
-                <span className="text-xl font-bold tracking-tight text-black">poly.co.ke</span>
+                <span className="text-xl font-bold tracking-tight text-black">KASOKO</span>
             </Link>
 
             <div className="apple-card w-full max-w-[400px] p-10">
-                <h1 className="text-3xl font-bold tracking-tight text-black mb-2 text-center">Join poly.co.ke</h1>
+                <h1 className="text-3xl font-bold tracking-tight text-black mb-2 text-center">Join KASOKO</h1>
                 <p className="text-sm text-muted-foreground text-center mb-10 font-medium">
                     Create your account to start predicting.
                 </p>

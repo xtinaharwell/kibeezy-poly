@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { TrendingUp, Clock, ShieldCheck, Wallet, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
@@ -48,7 +49,7 @@ export default function MarketDetail() {
         setMessage("");
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/bet/`, {
+            const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/bet/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -56,7 +57,6 @@ export default function MarketDetail() {
                     outcome,
                     amount: betAmount,
                 }),
-                credentials: "include",
             });
 
             const data = await response.json();

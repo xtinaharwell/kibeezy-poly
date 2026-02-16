@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { Plus, Edit2, CheckCircle, XCircle, Loader } from "lucide-react";
 
 export default function AdminPanel() {
@@ -27,10 +28,9 @@ export default function AdminPanel() {
 
     const loadMarkets = async () => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/admin/markets/`, {
+            const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/admin/markets/`, {
                 method: "GET",
                 headers: { "Content-Type": "application/json" },
-                credentials: "include",
             });
 
             if (response.ok) {
@@ -56,10 +56,9 @@ export default function AdminPanel() {
         }
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/admin/create/`, {
+            const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/admin/create/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                credentials: "include",
                 body: JSON.stringify(createForm),
             });
 
@@ -81,10 +80,9 @@ export default function AdminPanel() {
         setResolvingMarket(marketId);
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/admin/resolve/`, {
+            const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/admin/resolve/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                credentials: "include",
                 body: JSON.stringify({
                     market_id: marketId,
                     outcome: marketOutcome,

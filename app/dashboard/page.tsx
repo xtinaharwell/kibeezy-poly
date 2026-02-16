@@ -3,32 +3,41 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
-import { ArrowLeft, Wallet, TrendingUp, Award, History, LogOut } from "lucide-react";
+import DepositModal from "@/components/DepositModal";
+import { useAuth } from "@/lib/useAuth";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { ArrowLeft, Wallet, TrendingUp, Award, History, LogOut, Search, Filter } from "lucide-react";
 
 export default function Dashboard() {
-    const [user, setUser] = useState<any>(null);
+    const { user: authUser, loading: authLoading } = useAuth("/dashboard");
     const [statistics, setStatistics] = useState<any>(null);
     const [bets, setBets] = useState<any[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [activeTab, setActiveTab] = useState<"overview" | "bets" | "history">("overview");
+    const [activeTab, setActiveTab] = useState<"positions" | "open-orders" | "history">("positions");
+    const [profitLossPeriod, setProfitLossPeriod] = useState<"1D" | "1W" | "1M" | "ALL">("1M");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+    const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
 
     useEffect(() => {
+        if (authLoading) return;
+
         const loadDashboard = async () => {
             try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/dashboard/`, {
+                const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/dashboard/`, {
                     method: "GET",
                     headers: { "Content-Type": "application/json" },
-                    credentials: "include",
                 });
 
                 if (response.ok) {
                     const data = await response.json();
-                    setUser(data.user);
                     setStatistics(data.statistics);
-                    setBets(data.bets);
+                    setBets(data.bets || []);
                 } else if (response.status === 401) {
+                    localStorage.removeItem("poly_user");
+                    localStorage.setItem("poly_redirect", "/dashboard");
                     window.location.href = "/login";
                     return;
                 } else {
@@ -36,15 +45,14 @@ export default function Dashboard() {
                 }
 
                 // Load transaction history
-                const historyResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/history/`, {
+                const historyResponse = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/history/`, {
                     method: "GET",
                     headers: { "Content-Type": "application/json" },
-                    credentials: "include",
                 });
 
                 if (historyResponse.ok) {
                     const data = await historyResponse.json();
-                    setTransactions(data.transactions);
+                    setTransactions(data.transactions || []);
                 }
             } catch (err) {
                 setError("Connection error");
@@ -55,240 +63,374 @@ export default function Dashboard() {
         };
 
         loadDashboard();
-    }, []);
+    }, [authLoading]);
 
     const handleLogout = () => {
         localStorage.removeItem("poly_user");
         window.location.href = "/login";
     };
 
-    if (loading) {
+    if (authLoading || loading) {
         return (
             <div className="min-h-screen bg-[#fbfbfd]">
                 <Navbar />
-                <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)] p-6">
-                    <div className="flex flex-col items-center gap-4">
-                        <div className="h-12 w-12 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
-                        <p className="font-bold text-black text-lg">Loading...</p>
+                <main className="mx-auto pt-24 max-w-[1200px] px-4">
+                    <div className="space-y-4">
+                        <div className="h-32 bg-muted rounded-lg animate-pulse" />
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="h-24 bg-muted rounded-lg animate-pulse" />
+                            <div className="h-24 bg-muted rounded-lg animate-pulse" />
+                            <div className="h-24 bg-muted rounded-lg animate-pulse" />
+                        </div>
                     </div>
-                </div>
+                </main>
             </div>
         );
     }
 
-    if (!user) {
+    if (error || !authUser) {
         return (
             <div className="min-h-screen bg-[#fbfbfd]">
                 <Navbar />
-                <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)] p-6">
-                    <div className="apple-card w-full max-w-[400px] p-8 text-center">
-                        <h1 className="text-2xl font-bold text-black mb-3">Please Log In</h1>
-                        <p className="text-muted-foreground mb-6">{error || "Unable to load dashboard"}</p>
-                        <Link
-                            href="/login"
-                            className="w-full h-12 bg-black text-white rounded-full flex items-center justify-center font-bold transition-all hover:opacity-90"
-                        >
-                            Go to Login
-                        </Link>
-                    </div>
-                </div>
+                <main className="mx-auto pt-24 max-w-[1200px] px-4 text-center">
+                    <p className="text-red-500 mb-4">{error || "Failed to load dashboard"}</p>
+                    <Link href="/login" className="text-apple-blue hover:underline">
+                        Return to login
+                    </Link>
+                </main>
             </div>
         );
     }
+
+    const user = authUser;
 
     return (
-        <div className="min-h-screen bg-[#fbfbfd] pb-12">
+        <div className="min-h-screen bg-[#fbfbfd] pb-20">
             <Navbar />
-            <div className="pt-24 px-4">
-                <div className="max-w-[1200px] mx-auto">
-                    {/* Header */}
-                    <div className="flex items-center justify-between mb-8">
+
+            <main className="mx-auto pt-24 max-w-[1200px] px-4 md:px-6">
+                {/* Header */}
+                <div className="mb-8 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <Link href="/" className="p-2 hover:bg-muted rounded-lg transition">
+                            <ArrowLeft className="h-5 w-5" />
+                        </Link>
                         <div>
-                            <h1 className="text-3xl md:text-4xl font-bold text-black">Dashboard</h1>
-                            <p className="text-muted-foreground">Welcome back, {user.full_name}</p>
-                        </div>
-                        <button
-                            onClick={handleLogout}
-                            className="flex items-center gap-2 px-4 py-2 rounded-full border border-border hover:bg-muted transition-all"
-                        >
-                            <LogOut className="h-4 w-4" />
-                            Logout
-                        </button>
-                    </div>
-
-                    {/* Balance Card */}
-                    <div className="apple-card p-8 mb-8">
-                        <p className="text-muted-foreground text-sm font-bold uppercase tracking-wider mb-2">Total Balance</p>
-                        <h2 className="text-5xl font-bold text-black mb-6">KSH {parseFloat(user.balance).toFixed(2)}</h2>
-                        <div className="flex gap-4">
-                            <Link
-                                href="/deposit"
-                                className="flex-1 h-12 bg-black text-white rounded-full flex items-center justify-center font-bold transition-all hover:opacity-90"
-                            >
-                                <Wallet className="h-4 w-4 mr-2" />
-                                Deposit
-                            </Link>
-                            <Link
-                                href="/withdraw"
-                                className="flex-1 h-12 bg-muted text-black rounded-full flex items-center justify-center font-bold transition-all hover:bg-[#e8e8ed]"
-                            >
-                                <ArrowLeft className="h-4 w-4 mr-2 rotate-180" />
-                                Withdraw
-                            </Link>
+                            <h1 className="text-3xl font-bold">Welcome, {user.full_name}</h1>
+                            <p className="text-muted-foreground text-sm">{user.phone_number}</p>
                         </div>
                     </div>
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition text-sm font-medium"
+                    >
+                        <LogOut className="h-4 w-4" />
+                        Logout
+                    </button>
+                </div>
 
-                    {/* Statistics */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <div className="apple-card p-6">
-                            <div className="flex items-center justify-between">
+                {/* Portfolio & Profit/Loss Section */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    {/* Portfolio Card */}
+                    <div className="lg:col-span-2">
+                        <div className="bg-white rounded-2xl p-6 border border-gray-200">
+                            <div className="grid grid-cols-2 gap-6">
+                                {/* Left: Portfolio */}
                                 <div>
-                                    <p className="text-muted-foreground text-sm font-bold uppercase mb-1">Total Wagered</p>
-                                    <p className="text-2xl font-bold text-black">KSH {statistics.total_wagered.toFixed(2)}</p>
-                                </div>
-                                <TrendingUp className="h-8 w-8 text-muted-foreground opacity-50" />
-                            </div>
-                        </div>
-                        <div className="apple-card p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-muted-foreground text-sm font-bold uppercase mb-1">Wins</p>
-                                    <p className="text-2xl font-bold text-apple-green">{statistics.wins}</p>
-                                </div>
-                                <Award className="h-8 w-8 text-apple-green opacity-50" />
-                            </div>
-                        </div>
-                        <div className="apple-card p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-muted-foreground text-sm font-bold uppercase mb-1">Win Rate</p>
-                                    <p className="text-2xl font-bold text-black">{statistics.win_rate}%</p>
-                                </div>
-                                <Wallet className="h-8 w-8 text-muted-foreground opacity-50" />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Tabs */}
-                    <div className="apple-card mb-8">
-                        <div className="border-b border-border flex">
-                            <button
-                                onClick={() => setActiveTab("overview")}
-                                className={`flex-1 px-6 py-4 font-bold transition-all ${
-                                    activeTab === "overview"
-                                        ? "text-black border-b-2 border-black"
-                                        : "text-muted-foreground hover:text-black"
-                                }`}
-                            >
-                                Overview
-                            </button>
-                            <button
-                                onClick={() => setActiveTab("bets")}
-                                className={`flex-1 px-6 py-4 font-bold transition-all ${
-                                    activeTab === "bets"
-                                        ? "text-black border-b-2 border-black"
-                                        : "text-muted-foreground hover:text-black"
-                                }`}
-                            >
-                                Bets
-                            </button>
-                            <button
-                                onClick={() => setActiveTab("history")}
-                                className={`flex-1 px-6 py-4 font-bold transition-all ${
-                                    activeTab === "history"
-                                        ? "text-black border-b-2 border-black"
-                                        : "text-muted-foreground hover:text-black"
-                                }`}
-                            >
-                                History
-                            </button>
-                        </div>
-
-                        {/* Overview Tab */}
-                        {activeTab === "overview" && (
-                            <div className="p-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <h3 className="font-bold text-black mb-2">Account Info</h3>
-                                        <p className="text-sm text-muted-foreground mb-1">Phone: {user.phone_number}</p>
-                                        <p className="text-sm text-muted-foreground mb-1">Member since: {new Date(user.joined).toLocaleDateString()}</p>
-                                        <p className="text-sm text-muted-foreground">KYC: {user.kyc_verified ? "Verified ✓" : "Not Verified"}</p>
+                                    <p className="text-muted-foreground text-sm font-medium mb-1">Portfolio</p>
+                                    <h2 className="text-3xl font-bold mb-1">KSh {parseFloat(user.balance).toLocaleString()}</h2>
+                                    <p className="text-xs text-muted-foreground mb-6">{statistics?.total_wagered > 0 ? `+${parseFloat(statistics.total_wagered).toLocaleString()}` : '0.00'} (0%) past day</p>
+                                    
+                                    {/* Action Buttons */}
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => setIsDepositModalOpen(true)}
+                                            className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2 text-sm"
+                                        >
+                                            <Wallet className="h-4 w-4" />
+                                            Deposit
+                                        </button>
+                                        <button
+                                            onClick={() => setIsWithdrawModalOpen(true)}
+                                            className="flex-1 px-4 py-3 border border-gray-300 text-black rounded-lg font-semibold hover:bg-gray-50 transition text-sm"
+                                        >
+                                            Withdraw
+                                        </button>
                                     </div>
                                 </div>
-                            </div>
-                        )}
 
-                        {/* Bets Tab */}
-                        {activeTab === "bets" && (
-                            <div className="p-6">
-                                {bets.length === 0 ? (
-                                    <p className="text-muted-foreground text-center py-8">No bets yet</p>
+                                {/* Right: Available to Trade */}
+                                <div className="border-l border-gray-200 pl-6">
+                                    <p className="text-muted-foreground text-sm font-medium mb-1">Available to trade</p>
+                                    <h2 className="text-3xl font-bold">KSh {parseFloat(user.balance).toLocaleString()}</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Profit/Loss Card */}
+                    <div className="bg-white rounded-2xl p-6 border border-gray-200">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <p className="text-muted-foreground text-sm font-medium">Profit/Loss</p>
+                                <h2 className="text-3xl font-bold text-gray-900">KSh 0.00</h2>
+                            </div>
+                        </div>
+                        
+                        <p className="text-xs text-muted-foreground mb-4">Past {profitLossPeriod.toLowerCase()}</p>
+                        
+                        {/* Time Period Filters */}
+                        <div className="flex gap-2">
+                            {["1D", "1W", "1M", "ALL"].map((period) => (
+                                <button
+                                    key={period}
+                                    onClick={() => setProfitLossPeriod(period as any)}
+                                    className={`px-3 py-1 rounded text-xs font-medium transition ${
+                                        profitLossPeriod === period
+                                            ? "bg-blue-100 text-blue-600"
+                                            : "bg-gray-100 text-muted-foreground hover:bg-gray-200"
+                                    }`}
+                                >
+                                    {period}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Placeholder Chart */}
+                        <div className="mt-4 h-20 bg-gradient-to-r from-blue-50 to-transparent rounded-lg" />
+                    </div>
+                </div>
+
+                {/* Positions Tabs & Table */}
+                <div className="bg-white rounded-2xl border border-gray-200">
+                    {/* Tabs & Search */}
+                    <div className="border-b border-gray-200 p-6">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+                            {/* Tabs */}
+                            <div className="flex gap-6">
+                                {["positions", "open-orders", "history"].map((tab) => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setActiveTab(tab as any)}
+                                        className={`pb-2 font-semibold text-sm transition-colors border-b-2 ${
+                                            activeTab === tab
+                                                ? "border-black text-black"
+                                                : "border-transparent text-muted-foreground hover:text-black"
+                                        }`}
+                                    >
+                                        {tab.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Filter Button */}
+                            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm font-medium">
+                                <Filter className="h-4 w-4" />
+                                Current value
+                            </button>
+                        </div>
+
+                        {/* Search Bar */}
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <input
+                                type="text"
+                                placeholder="Search"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full md:w-64 pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 text-sm"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Table Content */}
+                    <div className="p-6">
+                        {activeTab === "positions" && (
+                            <div>
+                                {bets.filter(b => b.market_question?.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 ? (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm">
+                                            <thead>
+                                                <tr className="border-b border-gray-200">
+                                                    <th className="text-left py-3 px-4 font-semibold text-muted-foreground">MARKET</th>
+                                                    <th className="text-left py-3 px-4 font-semibold text-muted-foreground">AVG → NOW</th>
+                                                    <th className="text-left py-3 px-4 font-semibold text-muted-foreground">BET</th>
+                                                    <th className="text-left py-3 px-4 font-semibold text-muted-foreground">TO WIN</th>
+                                                    <th className="text-right py-3 px-4 font-semibold text-muted-foreground">VALUE</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {bets.filter(b => !searchQuery || b.market_question?.toLowerCase().includes(searchQuery.toLowerCase())).map((bet) => (
+                                                    <tr key={bet.id} className="border-b border-gray-100 hover:bg-gray-50 transition">
+                                                        <td className="py-4 px-4">
+                                                            <div>
+                                                                <p className="font-medium text-sm truncate max-w-xs">{bet.market_question}</p>
+                                                                <p className="text-xs text-muted-foreground mt-1">{bet.outcome}</p>
+                                                            </div>
+                                                        </td>
+                                                        <td className="py-4 px-4 text-sm">
+                                                            <span className="text-muted-foreground">0% → 0%</span>
+                                                        </td>
+                                                        <td className="py-4 px-4 text-sm font-medium">
+                                                            KSh {parseFloat(bet.amount).toLocaleString()}
+                                                        </td>
+                                                        <td className="py-4 px-4 text-sm">
+                                                            <span className="text-green-600 font-medium">
+                                                                {bet.payout ? `KSh ${parseFloat(bet.payout).toLocaleString()}` : "—"}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-4 px-4 text-right">
+                                                            <div>
+                                                                <p className="font-medium text-sm">
+                                                                    {bet.payout ? `+KSh ${(parseFloat(bet.payout) - parseFloat(bet.amount)).toLocaleString()}` : "—"}
+                                                                </p>
+                                                                <p className={`text-xs ${
+                                                                    bet.result === 'WON'
+                                                                        ? 'text-green-600'
+                                                                        : bet.result === 'LOST'
+                                                                        ? 'text-red-600'
+                                                                        : 'text-muted-foreground'
+                                                                }`}>
+                                                                    {bet.result}
+                                                                </p>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 ) : (
-                                    <div className="space-y-4">
-                                        {bets.map((bet) => (
-                                            <div key={bet.id} className="border border-border rounded-lg p-4">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div>
-                                                        <p className="font-bold text-black">{bet.market_question}</p>
-                                                        <p className="text-sm text-muted-foreground">Prediction: {bet.outcome}</p>
-                                                    </div>
-                                                    <span
-                                                        className={`text-xs font-bold px-3 py-1 rounded-full ${
-                                                            bet.result === "WON"
-                                                                ? "bg-apple-green/10 text-apple-green"
-                                                                : bet.result === "LOST"
-                                                                ? "bg-apple-red/10 text-apple-red"
-                                                                : "bg-muted text-muted-foreground"
-                                                        }`}
-                                                    >
-                                                        {bet.result}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between text-sm">
-                                                    <p>Wagered: <span className="font-bold text-black">KSH {parseFloat(bet.amount).toFixed(2)}</span></p>
-                                                    {bet.payout && <p>Payout: <span className="font-bold text-apple-green">KSH {parseFloat(bet.payout).toFixed(2)}</span></p>}
-                                                </div>
-                                            </div>
-                                        ))}
+                                    <div className="py-12 text-center">
+                                        <p className="text-muted-foreground">No positions found.</p>
                                     </div>
                                 )}
                             </div>
                         )}
 
-                        {/* History Tab */}
+                        {activeTab === "open-orders" && (
+                            <div className="py-12 text-center">
+                                <p className="text-muted-foreground">No open orders</p>
+                            </div>
+                        )}
+
                         {activeTab === "history" && (
-                            <div className="p-6">
-                                {transactions.length === 0 ? (
-                                    <p className="text-muted-foreground text-center py-8">No transaction history</p>
+                            <div>
+                                {transactions.length > 0 ? (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm">
+                                            <thead>
+                                                <tr className="border-b border-gray-200">
+                                                    <th className="text-left py-3 px-4 font-semibold text-muted-foreground">TYPE</th>
+                                                    <th className="text-left py-3 px-4 font-semibold text-muted-foreground">DESCRIPTION</th>
+                                                    <th className="text-left py-3 px-4 font-semibold text-muted-foreground">AMOUNT</th>
+                                                    <th className="text-left py-3 px-4 font-semibold text-muted-foreground">STATUS</th>
+                                                    <th className="text-left py-3 px-4 font-semibold text-muted-foreground">DATE</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {transactions.map((txn) => (
+                                                    <tr key={txn.id} className="border-b border-gray-100 hover:bg-gray-50 transition">
+                                                        <td className="py-4 px-4">
+                                                            <span className={`text-xs font-semibold px-2 py-1 rounded ${
+                                                                txn.type === 'DEPOSIT'
+                                                                    ? 'bg-green-50 text-green-700'
+                                                                    : 'bg-red-50 text-red-700'
+                                                            }`}>
+                                                                {txn.type}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-4 px-4 text-sm">{txn.description}</td>
+                                                        <td className="py-4 px-4 text-sm font-medium">
+                                                            <span className={txn.type === 'DEPOSIT' ? 'text-green-600' : 'text-red-600'}>
+                                                                {txn.type === 'DEPOSIT' ? '+' : '-'} KSh {parseFloat(txn.amount).toLocaleString()}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-4 px-4">
+                                                            <span className={`text-xs font-medium px-2 py-1 rounded ${
+                                                                txn.status === 'COMPLETED'
+                                                                    ? 'bg-green-50 text-green-700'
+                                                                    : txn.status === 'PENDING'
+                                                                    ? 'bg-yellow-50 text-yellow-700'
+                                                                    : 'bg-red-50 text-red-700'
+                                                            }`}>
+                                                                {txn.status}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-4 px-4 text-sm text-muted-foreground">
+                                                            {new Date(txn.created_at).toLocaleDateString()}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 ) : (
-                                    <div className="space-y-3">
-                                        {transactions.map((txn) => (
-                                            <div key={txn.id} className="flex justify-between items-center py-3 border-b border-border last:border-b-0">
-                                                <div>
-                                                    <p className="text-sm font-bold text-black">{txn.type}</p>
-                                                    <p className="text-xs text-muted-foreground">{new Date(txn.created_at).toLocaleDateString()} {new Date(txn.created_at).toLocaleTimeString()}</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className={`font-bold ${txn.type === "DEPOSIT" || txn.type === "PAYOUT" ? "text-apple-green" : "text-black"}`}>
-                                                        {txn.type === "DEPOSIT" || txn.type === "PAYOUT" ? "+" : "-"}KSH {parseFloat(txn.amount).toFixed(2)}
-                                                    </p>
-                                                    <p className={`text-xs ${
-                                                        txn.status === "COMPLETED" ? "text-apple-green" :
-                                                        txn.status === "FAILED" ? "text-apple-red" :
-                                                        "text-muted-foreground"
-                                                    }`}>
-                                                        {txn.status}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        ))}
+                                    <div className="py-12 text-center">
+                                        <p className="text-muted-foreground">No transaction history</p>
                                     </div>
                                 )}
                             </div>
                         )}
                     </div>
                 </div>
-            </div>
+            </main>
+
+            {/* Deposit Modal */}
+            <DepositModal
+                isOpen={isDepositModalOpen}
+                onClose={() => setIsDepositModalOpen(false)}
+                balance={authUser?.balance || "0.00"}
+            />
+
+            {/* Withdraw Modal */}
+            {isWithdrawModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setIsWithdrawModalOpen(false)} />
+                    <div className="relative bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-xl">
+                        <button
+                            onClick={() => setIsWithdrawModalOpen(false)}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-black transition"
+                        >
+                            ✕
+                        </button>
+                        
+                        <h2 className="text-2xl font-bold mb-2">Withdraw</h2>
+                        <p className="text-muted-foreground mb-6">Enter amount to withdraw</p>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-semibold mb-2">Amount (KSh)</label>
+                                <input
+                                    type="number"
+                                    placeholder="Enter amount"
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 text-lg"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-2">
+                                {[500, 1000, 5000].map((amount) => (
+                                    <button
+                                        key={amount}
+                                        className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-semibold transition"
+                                    >
+                                        KSh {amount.toLocaleString()}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="bg-gray-50 rounded-lg p-4">
+                                <p className="text-xs text-muted-foreground mb-1">M-Pesa</p>
+                                <p className="font-semibold text-sm">{authUser?.phone_number}</p>
+                            </div>
+
+                            <button className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
+                                Withdraw
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

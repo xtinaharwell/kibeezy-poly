@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Navbar from "@/components/Navbar";
 import { Command, Wallet, Phone, Lock } from "lucide-react";
 
 export default function Login() {
@@ -43,7 +44,10 @@ export default function Login() {
                 const checkData = await checkResponse.json();
                 console.log("Session check:", checkData);
                 
-                window.location.href = "/";
+                // Check if there's a redirect URL
+                const redirectUrl = localStorage.getItem("poly_redirect") || "/";
+                localStorage.removeItem("poly_redirect");
+                window.location.href = redirectUrl;
             } else {
                 console.log("Login failed:", data.error);
                 setError(data.error || "Login failed");
@@ -57,15 +61,17 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen bg-[#fbfbfd] flex flex-col items-center justify-center p-6">
-            <Link href="/" className="mb-8 flex items-center gap-2 transition-opacity hover:opacity-80">
-                <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-black text-white">
-                    <Command className="h-6 w-6" />
-                </div>
-                <span className="text-xl font-bold tracking-tight text-black">KASOKO</span>
-            </Link>
+        <div className="min-h-screen bg-[#fbfbfd]">
+            <Navbar />
+            <div className="flex flex-col items-center justify-center pt-24 pb-12 px-6">
+                <Link href="/" className="mb-8 flex items-center gap-2 transition-opacity hover:opacity-80">
+                    <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-black text-white">
+                        <Command className="h-6 w-6" />
+                    </div>
+                    <span className="text-xl font-bold tracking-tight text-black">KASOKO</span>
+                </Link>
 
-            <div className="apple-card w-full max-w-[400px] p-10">
+                <div className="apple-card w-full max-w-[400px] p-10">
                 <h1 className="text-3xl font-bold tracking-tight text-black mb-2 text-center">Welcome back</h1>
                 <p className="text-sm text-muted-foreground text-center mb-10 font-medium">
                     Enter your phone and PIN to sign in.
@@ -122,10 +128,11 @@ export default function Login() {
                 </p>
             </div>
 
-            <p className="mt-8 text-[11px] text-muted-foreground font-medium text-center max-w-[300px] leading-relaxed">
-                Your security is our priority.
-                PIN-protected decentralized access.
-            </p>
+                <p className="mt-8 text-[11px] text-muted-foreground font-medium text-center max-w-[300px] leading-relaxed">
+                    Your security is our priority.
+                    PIN-protected decentralized access.
+                </p>
+            </div>
         </div>
     );
 }

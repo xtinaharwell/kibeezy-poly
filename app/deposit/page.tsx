@@ -1,83 +1,60 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import { useAuth } from "@/lib/useAuth";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { ArrowLeft, Wallet, Smartphone, CreditCard, ChevronRight, CheckCircle2 } from "lucide-react";
 
 const PRESET_AMOUNTS = [500, 1000, 2000, 5000];
 
 export default function DepositPage() {
+    const { user: authUser, loading: authLoading } = useAuth("/deposit");
     const [amount, setAmount] = useState("");
     const [method, setMethod] = useState<"mpesa" | "card">("mpesa");
     const [step, setStep] = useState<"input" | "processing" | "success">("input");
     const [error, setError] = useState("");
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
-    // Check authentication on component mount
-    useEffect(() => {
-        const checkAuth = async () => {
-            try {
-                // First check localStorage for quick state restore
-                const storedUser = localStorage.getItem("poly_user");
-                if (storedUser) {
-                    console.log("User found in localStorage:", JSON.parse(storedUser));
-                    setIsAuthenticated(true);
-                    return;
-                }
+    if (authLoading) {
+        return (
+            <div className="min-h-screen bg-[#fbfbfd]">
+                <Navbar />
+                <main className="mx-auto pt-24 max-w-[600px] px-4">
+                    <div className="h-96 bg-muted rounded-lg animate-pulse" />
+                </main>
+            </div>
+        );
+    }
 
-                // If no localStorage, verify with API
-                console.log("Checking authentication with API...");
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/check/`, {
-                    method: "GET",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
-                });
-                
-                console.log("Auth check response status:", response.status);
-                const data = await response.json();
-                console.log("Auth check response data:", data);
-                
-                if (response.ok && data.authenticated) {
-                    setIsAuthenticated(true);
-                    // Store in localStorage for next time
-                    localStorage.setItem("poly_user", JSON.stringify(data.user));
-                } else {
-                    setIsAuthenticated(false);
-                }
-            } catch (err) {
-                console.error("Auth check failed:", err);
-                setIsAuthenticated(false);
-            }
-        };
-
-        checkAuth();
-    }, []);
+    if (!authUser) {
+        return (
+            <div className="min-h-screen bg-[#fbfbfd]">
+                <Navbar />
+                <main className="mx-auto pt-24 max-w-[600px] px-4 text-center">
+                    <p className="text-red-500 mb-4">Authentication required</p>
+                    <Link href="/login" className="text-apple-blue hover:underline">
+                        Return to login
+                    </Link>
+                </main>
+            </div>
+        );
+    }
 
     const handleDeposit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
-        if (!isAuthenticated) {
-            setError("Please log in first");
-            return;
-        }
-
         setStep("processing");
         setError("");
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payments/stk-push/`, {
+            const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payments/stk-push/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ amount }),
-                credentials: "include",
             });
 
             const data = await response.json();
             if (response.ok) {
-                // We keep it in processing step, usually in a real app 
-                // we would poll the backend for transaction status.
-                // For this demo, we'll wait 3 seconds then show success.
                 setTimeout(() => setStep("success"), 3000);
             } else {
                 setStep("input");
@@ -89,52 +66,14 @@ export default function DepositPage() {
         }
     };
 
-    // Loading state
-    if (isAuthenticated === null) {
-        return (
-            <div className="min-h-screen bg-[#fbfbfd]">
-                <Navbar />
-                <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)] p-6">
-                    <div className="flex flex-col items-center gap-4">
-                        <div className="h-12 w-12 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
-                        <p className="font-bold text-black text-lg">Loading...</p>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    // Not authenticated state
-    if (!isAuthenticated) {
-        return (
-            <div className="min-h-screen bg-[#fbfbfd]">
-                <Navbar />
-                <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)] p-6">
-                    <div className="apple-card w-full max-w-[400px] p-8 text-center">
-                        <h1 className="text-2xl font-bold text-black mb-3">Please Log In</h1>
-                        <p className="text-muted-foreground mb-6">You need to be logged in to make deposits.</p>
-                        <Link
-                            href="/login"
-                            className="w-full h-12 bg-black text-white rounded-full flex items-center justify-center font-bold transition-all hover:opacity-90"
-                        >
-                            Go to Login
-                        </Link>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
     if (step === "processing") {
         return (
             <div className="min-h-screen bg-[#fbfbfd] flex flex-col">
                 <Navbar />
-                <div className="flex-1 flex flex-col items-center justify-center p-6">
-                    <div className="flex flex-col items-center gap-4">
-                        <div className="h-12 w-12 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
-                        <p className="font-bold text-black text-lg">Processing Deposit...</p>
-                        <p className="text-muted-foreground text-sm">Please check your phone for the M-Pesa prompt.</p>
-                    </div>
+                <div className="flex-1 flex flex-col items-center justify-center">
+                    <Wallet className="h-12 w-12 text-black animate-bounce mb-4" />
+                    <p className="font-bold text-black text-lg">Processing...</p>
+                    <p className="text-muted-foreground">Check your phone for M-Pesa prompt</p>
                 </div>
             </div>
         );
@@ -145,19 +84,12 @@ export default function DepositPage() {
             <div className="min-h-screen bg-[#fbfbfd] flex flex-col">
                 <Navbar />
                 <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                    <div className="apple-card w-full max-w-[440px] p-8 flex flex-col items-center">
-                        <div className="h-20 w-20 bg-apple-green/10 rounded-full flex items-center justify-center mb-6">
-                            <CheckCircle2 className="h-10 w-10 text-apple-green" />
-                        </div>
-                        <h1 className="text-3xl font-bold text-black mb-2">Deposit Successful</h1>
-                        <p className="text-muted-foreground mb-8">KSH {amount} has been added to your balance.</p>
-                        <Link
-                            href="/"
-                            className="w-full h-12 bg-black text-white rounded-full flex items-center justify-center font-bold transition-all hover:opacity-90"
-                        >
-                            Back to Markets
-                        </Link>
-                    </div>
+                    <CheckCircle2 className="h-20 w-20 text-green-600 mb-4" />
+                    <h1 className="text-3xl font-bold text-black mb-2">Deposit Successful!</h1>
+                    <p className="text-muted-foreground mb-6">KSh {parseFloat(amount).toLocaleString()} added</p>
+                    <Link href="/dashboard" className="bg-black text-white px-6 py-3 rounded-lg font-semibold">
+                        Go to Dashboard →
+                    </Link>
                 </div>
             </div>
         );
@@ -166,137 +98,74 @@ export default function DepositPage() {
     return (
         <div className="min-h-screen bg-[#fbfbfd] pb-12">
             <Navbar />
-            <div className="pt-24 pb-12 px-4">
-                <div className="flex items-center gap-4 mb-8">
-                    <Link
-                        href="/"
-                        className="h-10 w-10 bg-white border border-border rounded-full flex items-center justify-center text-black transition-all hover:bg-muted"
-                    >
+            <main className="mx-auto pt-24 max-w-[600px] px-4 md:px-6">
+                <div className="mb-8 flex items-center gap-4">
+                    <Link href="/" className="p-2 hover:bg-gray-100 rounded-lg">
                         <ArrowLeft className="h-5 w-5" />
                     </Link>
                     <div>
-                        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-black">Deposit Funds</h1>
-                        <p className="text-muted-foreground font-medium">Add balance to start predicting</p>
+                        <h1 className="text-3xl font-bold">Deposit</h1>
+                        <p className="text-muted-foreground">Add funds to your account</p>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-2 space-y-6">
-                        {/* Amount Selection */}
-                        <div className="apple-card p-6 md:p-8">
-                            <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-4">Enter Amount (KSH)</label>
-                            <input
-                                type="number"
-                                placeholder="Min. 10"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                                className="text-4xl md:text-5xl font-bold bg-transparent border-none focus:outline-none w-full placeholder:text-muted/30 mb-8"
-                            />
+                <form onSubmit={handleDeposit} className="space-y-6">
+                    <div className="bg-white rounded-2xl p-6 border border-gray-200">
+                        <p className="text-sm text-muted-foreground mb-2">Amount</p>
+                        <input
+                            type="number"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            placeholder="0"
+                            className="text-4xl font-bold w-full border-none focus:outline-none bg-transparent"
+                            min="100"
+                            required
+                        />
+                    </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                {PRESET_AMOUNTS.map((a) => (
-                                    <button
-                                        key={a}
-                                        onClick={() => setAmount(a.toString())}
-                                        className={`h-12 rounded-2xl font-bold text-sm transition-all ${amount === a.toString()
-                                            ? "bg-black text-white"
-                                            : "bg-muted text-black hover:bg-[#e8e8ed]"
-                                            }`}
-                                    >
-                                        +{a}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Payment Method */}
-                        <div className="apple-card p-6 md:p-8">
-                            <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-4">Payment Method</label>
-                            <div className="space-y-3">
+                    <div>
+                        <label className="block text-sm font-semibold mb-3">Preset Amount</label>
+                        <div className="grid grid-cols-2 gap-3">
+                            {PRESET_AMOUNTS.map((preset) => (
                                 <button
-                                    onClick={() => setMethod("mpesa")}
-                                    className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${method === "mpesa"
-                                        ? "border-black bg-black/5"
-                                        : "border-border bg-white hover:border-black/20"
-                                        }`}
+                                    key={preset}
+                                    type="button"
+                                    onClick={() => setAmount(preset.toString())}
+                                    className="p-3 rounded-lg border border-gray-200 hover:border-black hover:bg-gray-50 font-semibold"
                                 >
-                                    <div className="flex items-center gap-4">
-                                        <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${method === "mpesa" ? "bg-black text-white" : "bg-muted text-black"}`}>
-                                            <Smartphone className="h-6 w-6" />
-                                        </div>
-                                        <div className="text-left">
-                                            <p className="font-bold text-black">M-Pesa Express</p>
-                                            <p className="text-xs text-muted-foreground">Instant STK Push</p>
-                                        </div>
-                                    </div>
-                                    {method === "mpesa" && <div className="h-5 w-5 bg-black rounded-full flex items-center justify-center"><div className="h-2 w-2 bg-white rounded-full"></div></div>}
+                                    KSh {preset.toLocaleString()}
                                 </button>
-
-                                <button
-                                    onClick={() => setMethod("card")}
-                                    className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${method === "card"
-                                        ? "border-black bg-black/5"
-                                        : "border-border bg-white hover:border-black/20"
-                                        }`}
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${method === "card" ? "bg-black text-white" : "bg-muted text-black"}`}>
-                                            <CreditCard className="h-6 w-6" />
-                                        </div>
-                                        <div className="text-left">
-                                            <p className="font-bold text-black">Credit / Debit Card</p>
-                                            <p className="text-xs text-muted-foreground">Visa, Mastercard</p>
-                                        </div>
-                                    </div>
-                                    {method === "card" && <div className="h-5 w-5 bg-black rounded-full flex items-center justify-center"><div className="h-2 w-2 bg-white rounded-full"></div></div>}
-                                </button>
-                            </div>
+                            ))}
                         </div>
                     </div>
 
-                    <div className="space-y-6">
-                        <div className="apple-card p-6 md:p-8 sticky top-24">
-                            <h2 className="text-xl font-bold text-black mb-6">Summary</h2>
-                            <div className="space-y-4 mb-8">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground font-medium">Deposit Amount</span>
-                                    <span className="text-black font-bold">KSH {amount || "0"}</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground font-medium">Fees</span>
-                                    <span className="text-black font-bold">KSH 0</span>
-                                </div>
-                                <div className="pt-4 border-t border-border flex justify-between items-center">
-                                    <span className="text-black font-bold text-lg">Total</span>
-                                    <span className="text-black font-bold text-2xl">KSH {amount || "0"}</span>
-                                </div>
-                            </div>
-
-                            {error && <p className="text-xs font-bold text-apple-red text-center mb-4">{error}</p>}
-                            <button
-                                onClick={handleDeposit}
-                                disabled={!amount || parseInt(amount) < 10}
-                                className="w-full h-14 bg-black text-white rounded-full flex items-center justify-center gap-2 font-bold transition-all hover:opacity-90 disabled:opacity-50"
-                            >
-                                <Wallet className="h-5 w-5" />
-                                Deposit Now
-                                <ChevronRight className="h-5 w-5" />
-                            </button>
-
-                            <p className="mt-6 text-[11px] text-muted-foreground text-center leading-relaxed">
-                                Secure payments processed by Flutterwave.<br />
-                                By depositing, you agree to our Terms of Service.
-                            </p>
-                        </div>
-
-                        <div className="p-4 rounded-2xl bg-apple-blue/5 border border-apple-blue/10">
-                            <p className="text-xs text-apple-blue font-semibold leading-relaxed">
-                                Need help with your deposit? Contact our 24/7 support via WhatsApp.
-                            </p>
-                        </div>
+                    <div>
+                        <label className="block text-sm font-semibold mb-3">Method</label>
+                        <button
+                            type="button"
+                            onClick={() => setMethod("mpesa")}
+                            className={`w-full p-4 rounded-lg border-2 text-left transition ${
+                                method === "mpesa"
+                                    ? "border-black bg-black/5"
+                                    : "border-gray-200 hover:border-gray-300"
+                            }`}
+                        >
+                            <p className="font-semibold">M-Pesa</p>
+                            <p className="text-xs text-muted-foreground">STK Push</p>
+                        </button>
                     </div>
-                </div>
-            </div>
+
+                    {error && <p className="text-red-600 text-sm">{error}</p>}
+
+                    <button
+                        type="submit"
+                        disabled={!amount || parseFloat(amount) < 100}
+                        className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Deposit KSh {amount || "0"}
+                    </button>
+                </form>
+            </main>
         </div>
     );
 }

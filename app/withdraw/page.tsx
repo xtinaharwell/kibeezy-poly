@@ -1,49 +1,45 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import { useAuth } from "@/lib/useAuth";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { ArrowLeft } from "lucide-react";
 
 export default function Withdraw() {
-    const [user, setUser] = useState<any>(null);
+    const { user: authUser, loading: authLoading } = useAuth("/withdraw");
     const [amount, setAmount] = useState("");
-    const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
-    useEffect(() => {
-        const checkAuth = async () => {
-            const storedUser = localStorage.getItem("poly_user");
-            if (!storedUser) {
-                window.location.href = "/login";
-                return;
-            }
+    if (authLoading) {
+        return (
+            <div className="min-h-screen bg-[#fbfbfd]">
+                <Navbar />
+                <main className="mx-auto pt-24 max-w-[600px] px-4">
+                    <div className="h-96 bg-muted rounded-lg animate-pulse" />
+                </main>
+            </div>
+        );
+    }
 
-            try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/check/`, {
-                    method: "GET",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
-                });
+    if (!authUser) {
+        return (
+            <div className="min-h-screen bg-[#fbfbfd]">
+                <Navbar />
+                <main className="mx-auto pt-24 max-w-[600px] px-4 text-center">
+                    <p className="text-red-500 mb-4">Authentication required</p>
+                    <Link href="/login" className="text-apple-blue hover:underline">
+                        Return to login
+                    </Link>
+                </main>
+            </div>
+        );
+    }
 
-                if (response.ok) {
-                    const data = await response.json();
-                    setUser(data.user);
-                } else {
-                    window.location.href = "/login";
-                }
-            } catch {
-                const parsed = JSON.parse(storedUser);
-                setUser(parsed);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        checkAuth();
-    }, []);
+    const user = authUser;
 
     const handleWithdraw = async () => {
         if (!amount || parseFloat(amount) <= 0) {
@@ -61,10 +57,9 @@ export default function Withdraw() {
         setSuccess("");
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/withdraw/`, {
+            const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/withdraw/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                credentials: "include",
                 body: JSON.stringify({ amount: parseFloat(amount) }),
             });
 
@@ -72,7 +67,6 @@ export default function Withdraw() {
                 const data = await response.json();
                 setSuccess(`Withdrawal initiated! Request ID: ${data.transaction_id}`);
                 setAmount("");
-                // Refresh user balance
                 setTimeout(() => {
                     window.location.href = "/dashboard";
                 }, 2000);
@@ -87,36 +81,6 @@ export default function Withdraw() {
             setSubmitting(false);
         }
     };
-
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-[#fbfbfd]">
-                <Navbar />
-                <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)] p-6">
-                    <div className="h-12 w-12 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
-                </div>
-            </div>
-        );
-    }
-
-    if (!user) {
-        return (
-            <div className="min-h-screen bg-[#fbfbfd]">
-                <Navbar />
-                <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)] p-6">
-                    <div className="apple-card w-full max-w-[400px] p-8 text-center">
-                        <h1 className="text-2xl font-bold text-black mb-3">Please Log In</h1>
-                        <Link
-                            href="/login"
-                            className="w-full h-12 bg-black text-white rounded-full flex items-center justify-center font-bold transition-all hover:opacity-90"
-                        >
-                            Go to Login
-                        </Link>
-                    </div>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="min-h-screen bg-[#fbfbfd] pb-12">

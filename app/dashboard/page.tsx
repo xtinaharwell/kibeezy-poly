@@ -7,6 +7,7 @@ import { fetchDashboardData, fetchTransactionHistory } from "@/lib/redux/slices/
 import { fetchUserData } from "@/lib/redux/slices/authSlice";
 import Navbar from "@/components/Navbar";
 import DepositModal from "@/components/DepositModal";
+import WithdrawModal from "@/components/WithdrawModal";
 import { useAuth } from "@/lib/useAuth";
 import { ArrowLeft, Wallet, TrendingUp, Award, History, LogOut, Search, Filter } from "lucide-react";
 
@@ -361,53 +362,12 @@ export default function Dashboard() {
             />
 
             {/* Withdraw Modal */}
-            {isWithdrawModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
-                    <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setIsWithdrawModalOpen(false)} />
-                    <div className="relative bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-xl">
-                        <button
-                            onClick={() => setIsWithdrawModalOpen(false)}
-                            className="absolute top-4 right-4 text-gray-400 hover:text-black transition"
-                        >
-                            ✕
-                        </button>
-                        
-                        <h2 className="text-2xl font-bold mb-2">Withdraw</h2>
-                        <p className="text-muted-foreground mb-6">Enter amount to withdraw</p>
-
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-semibold mb-2">Amount (KSh)</label>
-                                <input
-                                    type="number"
-                                    placeholder="Enter amount"
-                                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 text-lg"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-3 gap-2">
-                                {[500, 1000, 5000].map((amount) => (
-                                    <button
-                                        key={amount}
-                                        className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-semibold transition"
-                                    >
-                                        KSh {amount.toLocaleString()}
-                                    </button>
-                                ))}
-                            </div>
-
-                            <div className="bg-gray-50 rounded-lg p-4">
-                                <p className="text-xs text-muted-foreground mb-1">M-Pesa</p>
-                                <p className="font-semibold text-sm">{authUser?.phone_number}</p>
-                            </div>
-
-                            <button className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
-                                Withdraw
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <WithdrawModal
+                isOpen={isWithdrawModalOpen}
+                onClose={() => setIsWithdrawModalOpen(false)}
+                balance={authUser?.balance || "0.00"}
+                phoneNumber={authUser?.phone_number || ""}
+            />
         </div>
     );
 }

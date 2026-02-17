@@ -1,0 +1,217 @@
+"use client";
+
+import { X, Wallet, CheckCircle2 } from "lucide-react";
+import { useEffect, useState } from "react";
+
+interface WithdrawModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    balance: string;
+    phoneNumber: string;
+}
+
+const PRESET_AMOUNTS = [500, 1000, 5000];
+
+export default function WithdrawModal({ isOpen, onClose, balance, phoneNumber }: WithdrawModalProps) {
+    const [amount, setAmount] = useState("");
+    const [step, setStep] = useState<"input" | "processing" | "success">("input");
+    const [error, setError] = useState("");
+
+    // Close on escape key
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+        };
+        if (isOpen) {
+            document.addEventListener("keydown", handleKeyDown);
+            document.body.style.overflow = "hidden";
+        }
+        return () => {
+            document.removeEventListener("keydown", handleKeyDown);
+            document.body.style.overflow = "auto";
+        };
+    }, [isOpen, onClose]);
+
+    // Reset state when opening/closing
+    useEffect(() => {
+        if (!isOpen) {
+            setAmount("");
+            setStep("input");
+            setError("");
+        }
+    }, [isOpen]);
+
+    const handleWithdraw = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        // Validate amount
+        const withdrawAmount = parseFloat(amount);
+        const balanceAmount = parseFloat(balance);
+        
+        if (withdrawAmount > balanceAmount) {
+            setError("Insufficient balance");
+            return;
+        }
+
+        setStep("processing");
+        setError("");
+
+        try {
+            // Simulate API call - replace with actual endpoint
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // If successful, show success state
+            setTimeout(() => setStep("success"), 2000);
+        } catch (err) {
+            setStep("input");
+            setError("Failed to process withdrawal");
+        }
+    };
+
+    if (!isOpen) return null;
+
+    // Processing state
+    if (step === "processing") {
+        return (
+            <>
+                {/* Backdrop */}
+                <div
+                    className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm transition-opacity"
+                    onClick={onClose}
+                />
+                {/* Modal */}
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-0 pointer-events-none">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full pointer-events-auto flex flex-col items-center justify-center py-8 px-4">
+                        <Wallet className="h-10 w-10 text-black animate-bounce mb-3" />
+                        <p className="font-bold text-black text-base">Processing...</p>
+                        <p className="text-muted-foreground text-xs mt-1">Your withdrawal is being processed</p>
+                    </div>
+                </div>
+            </>
+        );
+    }
+
+    // Success state
+    if (step === "success") {
+        return (
+            <>
+                {/* Backdrop */}
+                <div
+                    className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm transition-opacity"
+                    onClick={onClose}
+                />
+                {/* Modal */}
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-0 pointer-events-none">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full pointer-events-auto p-4 text-center">
+                        <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto mb-3" />
+                        <h2 className="text-lg font-bold text-black mb-1">Withdrawal Successful!</h2>
+                        <p className="text-muted-foreground text-xs mb-4">KSh {parseFloat(amount).toLocaleString()} sent to {phoneNumber}</p>
+                        <button
+                            onClick={onClose}
+                            className="w-full bg-black text-white py-2 rounded-lg font-semibold text-sm hover:opacity-90"
+                        >
+                            Done
+                        </button>
+                    </div>
+                </div>
+            </>
+        );
+    }
+
+    // Input state
+    return (
+        <>
+            {/* Backdrop */}
+            <div
+                className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm transition-opacity"
+                onClick={onClose}
+            />
+
+            {/* Modal */}
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-0 pointer-events-none">
+                <div
+                    className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto pointer-events-auto animate-in fade-in slide-in-from-bottom-4 duration-300"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {/* Header */}
+                    <div className="sticky top-0 flex items-center justify-between p-4 border-b border-border bg-white">
+                        <div>
+                            <h2 className="text-base font-bold text-black">Withdraw</h2>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                Balance: KSh {balance}
+                            </p>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="p-1.5 hover:bg-muted rounded-lg transition-colors flex-shrink-0"
+                            aria-label="Close"
+                        >
+                            <X className="h-5 w-5 text-muted-foreground" />
+                        </button>
+                    </div>
+
+                    {/* Form Content */}
+                    <form onSubmit={handleWithdraw} className="p-4 space-y-3">
+                        {/* Amount Input */}
+                        <div className="bg-muted rounded-lg p-3">
+                            <p className="text-xs text-muted-foreground mb-1">Amount (KSh)</p>
+                            <input
+                                type="number"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                placeholder="0"
+                                className="text-2xl font-bold w-full border-none focus:outline-none bg-transparent"
+                                min="100"
+                                max={parseFloat(balance)}
+                                required
+                            />
+                        </div>
+
+                        {/* Preset Amounts */}
+                        <div>
+                            <label className="block text-xs font-semibold mb-2">Quick Select</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {PRESET_AMOUNTS.map((preset) => (
+                                    <button
+                                        key={preset}
+                                        type="button"
+                                        onClick={() => setAmount(preset.toString())}
+                                        className="py-2 px-2 rounded-lg border border-border hover:border-black hover:bg-muted font-semibold text-xs transition-all"
+                                    >
+                                        KSh {preset}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* M-Pesa Method */}
+                        <div>
+                            <label className="block text-xs font-semibold mb-2">Method</label>
+                            <div className="p-3 rounded-lg border-2 border-black bg-black/5">
+                                <p className="font-semibold text-sm">M-Pesa</p>
+                                <p className="text-xs text-muted-foreground">{phoneNumber}</p>
+                            </div>
+                        </div>
+
+                        {/* Error Message */}
+                        {error && <p className="text-red-600 text-xs md:text-sm">{error}</p>}
+
+                        {/* Submit Button */}
+                        <button
+                            type="submit"
+                            disabled={!amount || parseFloat(amount) < 100 || parseFloat(amount) > parseFloat(balance)}
+                            className="w-full bg-black text-white py-2 rounded-lg font-semibold text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                            Withdraw KSh {amount || "0"}
+                        </button>
+
+                        {/* Info Text */}
+                        <p className="text-[11px] text-center text-muted-foreground">
+                            Minimum: KSh 100
+                        </p>
+                    </form>
+                </div>
+            </div>
+        </>
+    );
+}

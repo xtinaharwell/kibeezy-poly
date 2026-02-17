@@ -15,6 +15,7 @@ export default function Navbar() {
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
     const [balance, setBalance] = useState<string>("0.00");
+    const [portfolioBalance, setPortfolioBalance] = useState<string>("0.00");
 
     useEffect(() => {
         const checkUser = () => {
@@ -44,6 +45,12 @@ export default function Navbar() {
                 if (response.ok) {
                     const data = await response.json();
                     setBalance(parseFloat(data.user.balance).toFixed(2));
+                    // Extract portfolio balance if available
+                    if (data.portfolio && data.portfolio.total_value) {
+                        setPortfolioBalance(parseFloat(data.portfolio.total_value).toFixed(2));
+                    } else {
+                        setPortfolioBalance("0.00");
+                    }
                 }
             } catch (err) {
                 console.error("Failed to fetch balance", err);
@@ -80,32 +87,48 @@ export default function Navbar() {
         <>
         <nav className="fixed top-0 left-0 right-0 z-50 apple-glass backdrop-blur-xl">
             <div className="mx-auto flex h-16 sm:h-14 md:h-12 max-w-[1200px] items-center justify-between px-3 sm:px-4 md:px-6">
-                {/* Left Section: Logo + Nav */}
-                <div className="flex items-center gap-3 sm:gap-4 md:gap-8 flex-shrink-0">
+                {/* Left Section: Logo */}
+                <div className="flex items-center gap-1.5 flex-shrink-0">
                     {/* Logo */}
-                    <Link href="/" className="flex items-center gap-1.5 transition-opacity hover:opacity-80 flex-shrink-0">
+                    <Link href="/" className="flex items-center gap-1 transition-opacity hover:opacity-80 flex-shrink-0">
                         <div className="h-6 w-6 sm:h-7 sm:w-7 flex items-center justify-center rounded-md bg-black text-white shrink-0">
                             <Command className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </div>
-                        <span className="hidden md:inline text-sm font-bold tracking-tight text-black">
+                        <span className="text-xs sm:text-sm font-bold tracking-tight text-black">
                             KASOKO
                         </span>
                     </Link>
-
-                    {/* Desktop Navigation */}
                 </div>
 
-                {/* Right Section: Balance + Auth */}
-                <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
-                    {/* Balance Display - Mobile Compact */}
-                    {user && (
-                        <div className="hidden xs:flex items-center gap-2 px-2.5 sm:px-3 md:px-4 py-1.5 rounded-lg bg-gradient-to-r from-apple-green/10 to-apple-blue/10 border border-apple-green/20">
+                {/* Center Section: Balance */}
+                {user && (
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        {/* Cash Balance */}
+                        <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg bg-gradient-to-r from-apple-green/10 to-apple-blue/10 border border-apple-green/20">
                             <Wallet className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-apple-green flex-shrink-0" />
-                            <span className="text-[10px] sm:text-xs md:text-xs font-bold text-black whitespace-nowrap">
-                                KSh <span className="text-apple-green font-black">{balance}</span>
-                            </span>
+                            <div className="flex flex-col gap-0">
+                                <span className="text-[9px] sm:text-[10px] font-medium text-gray-600">Cash</span>
+                                <span className="text-[10px] sm:text-xs font-bold text-black">
+                                    KSh <span className="text-apple-green font-black">{balance}</span>
+                                </span>
+                            </div>
                         </div>
-                    )}
+
+                        {/* Portfolio Balance */}
+                        <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg bg-gradient-to-r from-apple-blue/10 to-purple-400/10 border border-apple-blue/20">
+                            <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-apple-blue flex-shrink-0" />
+                            <div className="flex flex-col gap-0">
+                                <span className="text-[9px] sm:text-[10px] font-medium text-gray-600">Portfolio</span>
+                                <span className="text-[10px] sm:text-xs font-bold text-black">
+                                    KSh <span className="text-apple-blue font-black">{portfolioBalance}</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Right Section: Auth */}
+                <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
 
                     {/* Auth Section */}
                     {user ? (
@@ -113,28 +136,70 @@ export default function Navbar() {
                             {/* Desktop Buttons */}
                             <Link
                                 href="/dashboard"
-                                className="hidden sm:flex items-center gap-1 px-2 md:px-3 py-1 rounded-lg bg-black text-white text-xs font-semibold transition-all hover:opacity-80 active:scale-95"
+                                className="hidden sm:flex items-center gap-0.5 px-1.5 md:px-2 py-0.5 rounded-md bg-black text-white text-[11px] md:text-xs font-semibold transition-all hover:opacity-80 active:scale-95"
                             >
-                                <BarChart3 className="h-4 w-4" />
-                                <span className="hidden md:inline text-xs">Dashboard</span>
+                                <BarChart3 className="h-3.5 w-3.5" />
+                                <span className="hidden md:inline">Dashboard</span>
                             </Link>
                             <button
                                 onClick={() => setIsDepositModalOpen(true)}
-                                className="hidden sm:flex items-center gap-1 px-2 md:px-3 py-1 rounded-lg bg-apple-green text-white text-xs font-semibold transition-all hover:opacity-80 active:scale-95"
+                                className="hidden sm:flex items-center gap-0.5 px-1.5 md:px-2 py-0.5 rounded-md bg-apple-green text-white text-[11px] md:text-xs font-semibold transition-all hover:opacity-80 active:scale-95"
                             >
-                                <Wallet className="h-4 w-4" />
-                                <span className="hidden md:inline text-xs">Deposit</span>
+                                <Wallet className="h-3.5 w-3.5" />
+                                <span className="hidden md:inline">Deposit</span>
                             </button>
 
-                            {/* Notification Icon - Mobile */}
-                            <button
-                                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                                className="relative sm:hidden p-2 hover:bg-muted rounded-lg transition-colors"
-                                aria-label="Notifications"
-                            >
-                                <Bell className="h-5 w-5" />
-                                <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
-                            </button>
+                            {/* Notification Icon - Mobile & Desktop */}
+                            <div className="relative notification-menu">
+                                <button
+                                    onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                                    className="relative p-2 hover:bg-muted rounded-lg transition-colors"
+                                    aria-label="Notifications"
+                                >
+                                    <Bell className="h-5 w-5" />
+                                    <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
+                                </button>
+
+                                {/* Notification Popup */}
+                                {isNotificationOpen && (
+                                    <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-300 rounded-lg shadow-xl z-50 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h3 className="font-bold text-sm text-black">Notifications</h3>
+                                            <button
+                                                onClick={() => setIsNotificationOpen(false)}
+                                                className="text-gray-400 hover:text-black transition-colors"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                        <div className="space-y-3 max-h-80 overflow-y-auto">
+                                            <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer">
+                                                <p className="text-xs font-semibold text-blue-900">Welcome to KASOKO!</p>
+                                                <p className="text-xs text-blue-700 mt-1">Start predicting markets to earn rewards</p>
+                                                <p className="text-[10px] text-blue-500 mt-2">Just now</p>
+                                            </div>
+                                            <div className="p-3 rounded-lg bg-green-50 border border-green-200 hover:bg-green-100 transition-colors cursor-pointer">
+                                                <p className="text-xs font-semibold text-green-900">Account Verified</p>
+                                                <p className="text-xs text-green-700 mt-1">Your account has been verified</p>
+                                                <p className="text-[10px] text-green-500 mt-2">5 minutes ago</p>
+                                            </div>
+                                            <div className="p-3 rounded-lg bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer">
+                                                <p className="text-xs font-semibold text-purple-900">Market Available</p>
+                                                <p className="text-xs text-purple-700 mt-1">New market: Will Kenya lower interest rates by June?</p>
+                                                <p className="text-[10px] text-purple-500 mt-2">2 hours ago</p>
+                                            </div>
+                                            <div className="p-3 rounded-lg bg-orange-50 border border-orange-200 hover:bg-orange-100 transition-colors cursor-pointer">
+                                                <p className="text-xs font-semibold text-orange-900">Deposit Confirmed</p>
+                                                <p className="text-xs text-orange-700 mt-1">Your deposit of KSh 5,000 has been confirmed</p>
+                                                <p className="text-[10px] text-orange-500 mt-2">1 day ago</p>
+                                            </div>
+                                        </div>
+                                        <button className="w-full mt-4 pt-3 border-t border-gray-200 text-xs font-semibold text-center text-black hover:text-gray-600 transition-colors">
+                                            View all notifications
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
 
                             {/* Mobile Profile Menu - Top Right */}
                             <div className="relative mobile-profile-menu sm:hidden">
@@ -203,31 +268,6 @@ export default function Navbar() {
                                     </div>
                                 )}
                             </div>
-
-                            {/* Notification Menu - Mobile */}
-                            {isNotificationOpen && (
-                                <div className="absolute right-12 top-16 w-72 bg-white border border-border rounded-lg shadow-lg z-50 p-4 sm:hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <h3 className="font-bold text-sm">Notifications</h3>
-                                        <button
-                                            onClick={() => setIsNotificationOpen(false)}
-                                            className="text-muted-foreground hover:text-black"
-                                        >
-                                            ✕
-                                        </button>
-                                    </div>
-                                    <div className="space-y-3 max-h-64 overflow-y-auto">
-                                        <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
-                                            <p className="text-xs font-semibold text-blue-900">Welcome to KASOKO!</p>
-                                            <p className="text-xs text-blue-700 mt-1">Start predicting markets to earn rewards</p>
-                                        </div>
-                                        <div className="p-3 rounded-lg bg-green-50 border border-green-200">
-                                            <p className="text-xs font-semibold text-green-900">Account Verified</p>
-                                            <p className="text-xs text-green-700 mt-1">Your account has been verified</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
 
                             {/* Profile Menu - Desktop */}
                             <div className="relative profile-menu hidden sm:block">

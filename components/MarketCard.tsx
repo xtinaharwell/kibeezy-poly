@@ -24,7 +24,7 @@ export default function MarketCard({ market }: MarketCardProps) {
             {/* Mobile List View */}
             <Link
                 href={`/markets/${market.id}`}
-                className="block md:hidden border-b border-border p-4 hover:bg-muted/50 transition-colors active:bg-muted"
+                className="block md:hidden border-b border-gray-300 bg-gradient-to-br from-white to-gray-50/50 p-4 hover:bg-gradient-to-br hover:from-white hover:to-gray-100 transition-all active:bg-gray-100"
             >
                 <div className="space-y-3">
                     {/* Header */}
@@ -74,7 +74,7 @@ export default function MarketCard({ market }: MarketCardProps) {
             {/* Desktop Card View */}
             <Link
                 href={`/markets/${market.id}`}
-                className="hidden md:block overflow-hidden rounded-[20px] border border-gray-200/50 bg-white/50 backdrop-blur-sm p-5 md:p-6 cursor-pointer transition-all duration-300 hover:border-gray-300 hover:bg-white hover:shadow-lg hover:shadow-black/5 active:scale-[0.98]"
+                className="hidden md:block overflow-hidden rounded-[20px] border-2 border-gray-300 bg-gradient-to-br from-white via-gray-50/30 to-gray-100/50 backdrop-blur-sm p-5 md:p-6 cursor-pointer transition-all duration-300 hover:border-gray-400 hover:bg-gradient-to-br hover:from-white hover:via-gray-50 hover:to-gray-100 hover:shadow-xl hover:shadow-black/8 active:scale-[0.98]"
             >
                 <div className="flex items-start justify-between mb-5 md:mb-6">
                     <div className="h-12 w-12 md:h-14 md:w-14 shrink-0 overflow-hidden rounded-[12px] md:rounded-[14px] bg-gray-100 ring-1 ring-gray-200/50">

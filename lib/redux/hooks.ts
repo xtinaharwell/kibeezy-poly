@@ -35,3 +35,10 @@ export const selectPortfolioValue = (state: RootState) => state.portfolio.portfo
 export const selectPortfolioLoading = (state: RootState) => state.portfolio.loading;
 export const selectPortfolioError = (state: RootState) => state.portfolio.error;
 export const selectPortfolioLastUpdate = (state: RootState) => state.portfolio.lastUpdate;
+
+// Notifications selectors
+export const selectNotifications = (state: RootState) => state.notifications.items;
+export const selectUnreadCount = (state: RootState) => state.notifications.unreadCount;
+export const selectNotificationsLoading = (state: RootState) => state.notifications.loading;
+export const selectNotificationsError = (state: RootState) => state.notifications.error;
+export const selectNotificationsLastUpdate = (state: RootState) => state.notifications.lastUpdate;

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { useAppDispatch, useAppSelector, selectAllMarkets, selectMarketsLoading } from "@/lib/redux/hooks";
-import { fetchMarkets } from "@/lib/redux/slices/marketsSlice";
+import { useAppDispatch, useAppSelector, selectAllMarkets, selectMarketsLoading, selectSavedMarketIds } from "@/lib/redux/hooks";
+import { fetchMarkets, toggleSaveMarket } from "@/lib/redux/slices/marketsSlice";
 import Navbar from "@/components/Navbar";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { TrendingUp, Clock, ShieldCheck, Wallet, ArrowLeft, Share2, Bookmark } from "lucide-react";
@@ -16,6 +16,7 @@ export default function MarketDetail() {
     // Redux state
     const allMarkets = useAppSelector(selectAllMarkets);
     const loading = useAppSelector(selectMarketsLoading);
+    const savedMarketIds = useAppSelector(selectSavedMarketIds);
     
     const [market, setMarket] = useState<any>(null);
     const [betAmount, setBetAmount] = useState("");
@@ -23,6 +24,7 @@ export default function MarketDetail() {
     const [placingBet, setPlacingBet] = useState(false);
     const [message, setMessage] = useState("");
     const [activeTab, setActiveTab] = useState<"buy" | "sell">("buy");
+    const [isSaved, setIsSaved] = useState(false);
 
     // Fetch markets if not already loaded
     useEffect(() => {
@@ -31,13 +33,14 @@ export default function MarketDetail() {
         }
     }, [dispatch, allMarkets.length]);
 
-    // Set market from Redux data
+    // Set market from Redux data and update saved status
     useEffect(() => {
         if (allMarkets.length > 0) {
             const found = allMarkets.find((m: any) => m.id.toString() === id);
             setMarket(found);
+            setIsSaved(savedMarketIds.includes(Number(id)));
         }
-    }, [allMarkets, id]);
+    }, [allMarkets, id, savedMarketIds]);
 
     const handleBet = async (outcome: "Yes" | "No") => {
         if (!betAmount || isNaN(Number(betAmount))) {
@@ -101,6 +104,20 @@ export default function MarketDetail() {
 
     const estimatedWinnings = calculateEstimatedWinnings();
 
+    const handleSaveToggle = () => {
+        dispatch(toggleSaveMarket(Number(id)));
+        
+        // Update localStorage
+        const savedIds = [...savedMarketIds];
+        if (isSaved) {
+            const index = savedIds.indexOf(Number(id));
+            if (index > -1) savedIds.splice(index, 1);
+        } else {
+            savedIds.push(Number(id));
+        }
+        localStorage.setItem("poly_saved_markets", JSON.stringify(savedIds));
+    };
+
     return (
         <div className="min-h-screen bg-white pb-20 md:pb-8 font-sans">
             <Navbar />
@@ -132,9 +149,14 @@ export default function MarketDetail() {
                                     <Share2 className="h-4 w-4" />
                                     Share
                                 </button>
-                                <button className="flex items-center gap-2 hover:text-black transition">
-                                    <Bookmark className="h-4 w-4" />
-                                    Save
+                                <button
+                                    onClick={handleSaveToggle}
+                                    className={`flex items-center gap-2 transition ${
+                                        isSaved ? 'text-yellow-600' : 'text-gray-600 hover:text-black'
+                                    }`}
+                                >
+                                    <Bookmark className="h-4 w-4" fill={isSaved ? "currentColor" : "none"} />
+                                    {isSaved ? 'Saved' : 'Save'}
                                 </button>
                             </div>
                         </div>

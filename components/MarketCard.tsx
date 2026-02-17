@@ -106,9 +106,6 @@ export default function MarketCard({ market }: MarketCardProps) {
                             <span>{market.volume}</span>
                         </div>
                         <span>Monthly</span>
-                        <button className="ml-auto p-1 hover:bg-muted rounded transition-colors">
-                            <Bookmark className="h-4 w-4 text-muted-foreground hover:text-black" />
-                        </button>
                     </div>
                 </div>
             </Link>

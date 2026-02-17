@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAppDispatch, useAppSelector, selectUser, selectBalance, selectPortfolioBalance } from "@/lib/redux/hooks";
+import { useAppDispatch, useAppSelector, selectUser, selectBalance, selectPortfolioBalance, selectNotifications, selectUnreadCount, selectNotificationsLoading } from "@/lib/redux/hooks";
 import { fetchUserData, logout } from "@/lib/redux/slices/authSlice";
+import { fetchNotifications } from "@/lib/redux/slices/notificationsSlice";
 import { Search, Command, LogOut, Wallet, Home, BarChart3, Settings, ChevronDown, DollarSign, User, TrendingUp, Bell, Gift, HelpCircle } from "lucide-react";
 import DepositModal from "./DepositModal";
 
@@ -16,6 +17,9 @@ export default function Navbar() {
     const user = useAppSelector(selectUser);
     const balance = useAppSelector(selectBalance);
     const portfolioBalance = useAppSelector(selectPortfolioBalance);
+    const notifications = useAppSelector(selectNotifications);
+    const unreadCount = useAppSelector(selectUnreadCount);
+    const isLoadingNotifications = useAppSelector(selectNotificationsLoading);
     
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isMobileProfileOpen, setIsMobileProfileOpen] = useState(false);
@@ -58,6 +62,61 @@ export default function Navbar() {
             clearInterval(interval);
         };
     }, [dispatch]);
+
+    // Fetch notifications when notification menu opens
+    useEffect(() => {
+        if (isNotificationOpen) {
+            dispatch(fetchNotifications());
+        }
+    }, [isNotificationOpen, dispatch]);
+
+    // Color mapping for notification types
+    const getColorClasses = (colorClass: string) => {
+        const colorMap: { [key: string]: { bg: string; border: string; textBg: string; textTitle: string; textMsg: string; textTime: string } } = {
+            blue: {
+                bg: 'bg-blue-50',
+                border: 'border-blue-200',
+                textBg: 'hover:bg-blue-100',
+                textTitle: 'text-blue-900',
+                textMsg: 'text-blue-700',
+                textTime: 'text-blue-500'
+            },
+            green: {
+                bg: 'bg-green-50',
+                border: 'border-green-200',
+                textBg: 'hover:bg-green-100',
+                textTitle: 'text-green-900',
+                textMsg: 'text-green-700',
+                textTime: 'text-green-500'
+            },
+            purple: {
+                bg: 'bg-purple-50',
+                border: 'border-purple-200',
+                textBg: 'hover:bg-purple-100',
+                textTitle: 'text-purple-900',
+                textMsg: 'text-purple-700',
+                textTime: 'text-purple-500'
+            },
+            orange: {
+                bg: 'bg-orange-50',
+                border: 'border-orange-200',
+                textBg: 'hover:bg-orange-100',
+                textTitle: 'text-orange-900',
+                textMsg: 'text-orange-700',
+                textTime: 'text-orange-500'
+            },
+            red: {
+                bg: 'bg-red-50',
+                border: 'border-red-200',
+                textBg: 'hover:bg-red-100',
+                textTitle: 'text-red-900',
+                textMsg: 'text-red-700',
+                textTime: 'text-red-500'
+            },
+        };
+        
+        return colorMap[colorClass] || colorMap.blue;
+    };
 
     // Close profile menu when clicking outside
     useEffect(() => {
@@ -154,14 +213,18 @@ export default function Navbar() {
                                     aria-label="Notifications"
                                 >
                                     <Bell className="h-5 w-5" />
-                                    <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
+                                    {unreadCount > 0 && (
+                                        <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
+                                    )}
                                 </button>
 
                                 {/* Notification Popup */}
                                 {isNotificationOpen && (
                                     <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-300 rounded-lg shadow-xl z-50 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
                                         <div className="flex items-center justify-between mb-4">
-                                            <h3 className="font-bold text-sm text-black">Notifications</h3>
+                                            <h3 className="font-bold text-sm text-black">
+                                                Notifications {unreadCount > 0 && `(${unreadCount})`}
+                                            </h3>
                                             <button
                                                 onClick={() => setIsNotificationOpen(false)}
                                                 className="text-gray-400 hover:text-black transition-colors"
@@ -170,26 +233,25 @@ export default function Navbar() {
                                             </button>
                                         </div>
                                         <div className="space-y-3 max-h-80 overflow-y-auto">
-                                            <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer">
-                                                <p className="text-xs font-semibold text-blue-900">Welcome to KASOKO!</p>
-                                                <p className="text-xs text-blue-700 mt-1">Start predicting markets to earn rewards</p>
-                                                <p className="text-[10px] text-blue-500 mt-2">Just now</p>
-                                            </div>
-                                            <div className="p-3 rounded-lg bg-green-50 border border-green-200 hover:bg-green-100 transition-colors cursor-pointer">
-                                                <p className="text-xs font-semibold text-green-900">Account Verified</p>
-                                                <p className="text-xs text-green-700 mt-1">Your account has been verified</p>
-                                                <p className="text-[10px] text-green-500 mt-2">5 minutes ago</p>
-                                            </div>
-                                            <div className="p-3 rounded-lg bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer">
-                                                <p className="text-xs font-semibold text-purple-900">Market Available</p>
-                                                <p className="text-xs text-purple-700 mt-1">New market: Will Kenya lower interest rates by June?</p>
-                                                <p className="text-[10px] text-purple-500 mt-2">2 hours ago</p>
-                                            </div>
-                                            <div className="p-3 rounded-lg bg-orange-50 border border-orange-200 hover:bg-orange-100 transition-colors cursor-pointer">
-                                                <p className="text-xs font-semibold text-orange-900">Deposit Confirmed</p>
-                                                <p className="text-xs text-orange-700 mt-1">Your deposit of KSh 5,000 has been confirmed</p>
-                                                <p className="text-[10px] text-orange-500 mt-2">1 day ago</p>
-                                            </div>
+                                            {isLoadingNotifications ? (
+                                                <div className="p-3 text-center text-gray-500 text-xs">Loading notifications...</div>
+                                            ) : notifications.length > 0 ? (
+                                                notifications.map((notif) => {
+                                                    const colors = getColorClasses(notif.color_class);
+                                                    return (
+                                                        <div
+                                                            key={notif.id}
+                                                            className={`p-3 rounded-lg ${colors.bg} border ${colors.border} ${colors.textBg} transition-colors cursor-pointer`}
+                                                        >
+                                                            <p className={`text-xs font-semibold ${colors.textTitle}`}>{notif.title}</p>
+                                                            <p className={`text-xs ${colors.textMsg} mt-1`}>{notif.message}</p>
+                                                            <p className={`text-[10px] ${colors.textTime} mt-2`}>{notif.time}</p>
+                                                        </div>
+                                                    );
+                                                })
+                                            ) : (
+                                                <div className="p-3 text-center text-gray-500 text-xs">No notifications yet</div>
+                                            )}
                                         </div>
                                         <button className="w-full mt-4 pt-3 border-t border-gray-200 text-xs font-semibold text-center text-black hover:text-gray-600 transition-colors">
                                             View all notifications

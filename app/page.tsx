@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useAppDispatch, useAppSelector, selectAllMarkets, selectFilteredMarkets, selectMarketsLoading } from "@/lib/redux/hooks";
-import { fetchMarkets, setFilteredMarkets } from "@/lib/redux/slices/marketsSlice";
+import { useAppDispatch, useAppSelector, selectAllMarkets, selectFilteredMarkets, selectMarketsLoading, selectSavedMarkets } from "@/lib/redux/hooks";
+import { fetchMarkets, setFilteredMarkets, toggleSaveMarket, loadSavedMarketsFromStorage } from "@/lib/redux/slices/marketsSlice";
 import Navbar from "@/components/Navbar";
 import MarketCard from "@/components/MarketCard";
-import { Search, Sliders } from "lucide-react";
+import { Search, Sliders, Bookmark } from "lucide-react";
 
-const categories = ["Trending", "Breaking", "New", "Politics", "Sports", "Crypto"];
+const categories = ["Trending", "Breaking", "New", "Politics", "Sports", "Crypto", "Saved"];
 
 const browseCategories = ["New", "Trending", "Popular", "Liquid", "Ending Soon"];
 const topics = ["Live Crypto", "Middle East", "Sports", "Tech", "Politics", "Crypto", "Pop Culture", "AI"];
@@ -20,6 +20,7 @@ export default function Home() {
   const allMarkets = useAppSelector(selectAllMarkets);
   const filteredMarkets = useAppSelector(selectFilteredMarkets);
   const loading = useAppSelector(selectMarketsLoading);
+  const savedMarkets = useAppSelector(selectSavedMarkets);
   
   const [activeCategory, setActiveCategory] = useState("Trending");
   const [searchQuery, setSearchQuery] = useState("");
@@ -30,6 +31,19 @@ export default function Home() {
   const [sortBy, setSortBy] = useState("volume");
   const searchBoxRef = useRef<HTMLDivElement>(null);
   const filterBoxRef = useRef<HTMLDivElement>(null);
+
+  // Load saved markets from localStorage on mount
+  useEffect(() => {
+    const savedMarketIds = localStorage.getItem("poly_saved_markets");
+    if (savedMarketIds) {
+      try {
+        const ids = JSON.parse(savedMarketIds);
+        dispatch(loadSavedMarketsFromStorage(ids));
+      } catch (e) {
+        console.error("Failed to load saved markets", e);
+      }
+    }
+  }, [dispatch]);
 
   // Fetch markets on mount
   useEffect(() => {
@@ -57,11 +71,23 @@ export default function Home() {
 
   // Update filtered markets when filters change
   useEffect(() => {
-    const filtered = allMarkets.filter(m => {
-      const matchCategory = activeCategory === "Trending" || m.category === activeCategory;
+    let marketsToFilter = allMarkets;
+    
+    // Filter by saved if "Saved" category is selected
+    if (activeCategory === "Saved") {
+      marketsToFilter = allMarkets.filter(m => m.saved);
+    } else {
+      marketsToFilter = allMarkets.filter(m => {
+        const matchCategory = activeCategory === "Trending" || m.category === activeCategory;
+        return matchCategory;
+      });
+    }
+    
+    // Apply search and probability filters
+    const filtered = marketsToFilter.filter(m => {
       const matchSearch = m.question.toLowerCase().includes(searchQuery.toLowerCase());
       const matchProbability = m.yes_probability >= minProbability && m.yes_probability <= maxProbability;
-      return matchCategory && matchSearch && matchProbability;
+      return matchSearch && matchProbability;
     }).sort((a, b) => {
       if (sortBy === "volume") {
         const aVol = parseInt(a.volume.replace(/\D/g, '')) || 0;

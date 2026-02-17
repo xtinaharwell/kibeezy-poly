@@ -2,6 +2,9 @@
 
 import { TrendingUp, Bookmark } from "lucide-react";
 import Link from "next/link";
+import { useAppDispatch, useAppSelector, selectSavedMarketIds } from "@/lib/redux/hooks";
+import { toggleSaveMarket } from "@/lib/redux/slices/marketsSlice";
+import { useState, useEffect } from "react";
 
 interface MarketCardProps {
     market: {
@@ -13,10 +16,36 @@ interface MarketCardProps {
         volume: string;
         end_date: string;
         is_live?: boolean;
+        saved?: boolean;
     };
 }
 
 export default function MarketCard({ market }: MarketCardProps) {
+    const dispatch = useAppDispatch();
+    const savedMarketIds = useAppSelector(selectSavedMarketIds);
+    const [isSaved, setIsSaved] = useState(false);
+
+    useEffect(() => {
+        setIsSaved(savedMarketIds.includes(market.id));
+    }, [savedMarketIds, market.id]);
+
+    const handleSaveToggle = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        dispatch(toggleSaveMarket(market.id));
+        
+        // Update localStorage
+        const savedIds = [...savedMarketIds];
+        if (isSaved) {
+            const index = savedIds.indexOf(market.id);
+            if (index > -1) savedIds.splice(index, 1);
+        } else {
+            savedIds.push(market.id);
+        }
+        localStorage.setItem("poly_saved_markets", JSON.stringify(savedIds));
+    };
+
     const noProbability = 100 - market.yes_probability;
 
     return (
@@ -28,15 +57,28 @@ export default function MarketCard({ market }: MarketCardProps) {
             >
                 <div className="space-y-3">
                     {/* Header */}
-                    <div className="flex gap-3 items-start">
-                        <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-gray-100 overflow-hidden ring-1 ring-gray-200/50">
-                            {market.image_url && <img src={market.image_url} alt="" className="h-full w-full object-cover" />}
+                    <div className="flex gap-3 items-start justify-between">
+                        <div className="flex gap-3 items-start flex-1">
+                            <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-gray-100 overflow-hidden ring-1 ring-gray-200/50">
+                                {market.image_url && <img src={market.image_url} alt="" className="h-full w-full object-cover" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h3 className="text-sm font-semibold text-black leading-snug">
+                                    {market.question}
+                                </h3>
+                            </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                            <h3 className="text-sm font-semibold text-black leading-snug">
-                                {market.question}
-                            </h3>
-                        </div>
+                        <button
+                            onClick={handleSaveToggle}
+                            className={`p-1.5 rounded-lg flex-shrink-0 transition-all duration-200 ${
+                                isSaved
+                                    ? 'bg-yellow-100 text-yellow-600'
+                                    : 'bg-gray-100 text-gray-400'
+                            }`}
+                            aria-label="Save market"
+                        >
+                            <Bookmark className="h-4 w-4" fill={isSaved ? "currentColor" : "none"} />
+                        </button>
                     </div>
 
                     {/* Outcomes - Yes/No Row */}
@@ -80,12 +122,25 @@ export default function MarketCard({ market }: MarketCardProps) {
                     <div className="h-12 w-12 md:h-14 md:w-14 shrink-0 overflow-hidden rounded-[12px] md:rounded-[14px] bg-gray-100 ring-1 ring-gray-200/50">
                         {market.image_url && <img src={market.image_url} alt="" className="h-full w-full object-cover" />}
                     </div>
-                    {market.is_live && (
-                        <div className="flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 md:px-3 py-1 md:py-1.5 ring-1 ring-red-200/50">
-                            <div className="h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-red-500 animate-pulse" />
-                            <span className="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-red-600">Live</span>
-                        </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                        {market.is_live && (
+                            <div className="flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 md:px-3 py-1 md:py-1.5 ring-1 ring-red-200/50">
+                                <div className="h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-red-500 animate-pulse" />
+                                <span className="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-red-600">Live</span>
+                            </div>
+                        )}
+                        <button
+                            onClick={handleSaveToggle}
+                            className={`p-2 rounded-lg transition-all duration-200 ${
+                                isSaved
+                                    ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
+                                    : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600'
+                            }`}
+                            aria-label="Save market"
+                        >
+                            <Bookmark className="h-4 w-4" fill={isSaved ? "currentColor" : "none"} />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="grow mb-6">

@@ -11,6 +11,7 @@ export interface Market {
     resolved_outcome?: string;
     image_url?: string;
     is_live?: boolean;
+    saved?: boolean;
 }
 
 interface MarketsState {
@@ -19,6 +20,7 @@ interface MarketsState {
     loading: boolean;
     error: string | null;
     lastUpdate: number;
+    savedMarketIds: number[];
 }
 
 const initialState: MarketsState = {
@@ -27,6 +29,7 @@ const initialState: MarketsState = {
     loading: false,
     error: null,
     lastUpdate: 0,
+    savedMarketIds: [],
 };
 
 // Thunk to fetch all markets
@@ -57,6 +60,29 @@ const marketsSlice = createSlice({
             state.allMarkets = [];
             state.filteredMarkets = [];
         },
+        toggleSaveMarket: (state, action) => {
+            const marketId = action.payload;
+            const index = state.savedMarketIds.indexOf(marketId);
+            if (index > -1) {
+                state.savedMarketIds.splice(index, 1);
+            } else {
+                state.savedMarketIds.push(marketId);
+            }
+            // Update saved status in allMarkets
+            state.allMarkets = state.allMarkets.map(m => 
+                m.id === marketId 
+                    ? { ...m, saved: state.savedMarketIds.includes(m.id) }
+                    : m
+            );
+        },
+        loadSavedMarketsFromStorage: (state, action) => {
+            state.savedMarketIds = action.payload;
+            // Update saved status in allMarkets
+            state.allMarkets = state.allMarkets.map(m => ({
+                ...m,
+                saved: state.savedMarketIds.includes(m.id)
+            }));
+        },
     },
     extraReducers: (builder) => {
         builder
@@ -65,8 +91,11 @@ const marketsSlice = createSlice({
                 state.error = null;
             })
             .addCase(fetchMarkets.fulfilled, (state, action) => {
-                state.allMarkets = action.payload;
-                state.filteredMarkets = action.payload;
+                state.allMarkets = action.payload.map((m: Market) => ({
+                    ...m,
+                    saved: state.savedMarketIds.includes(m.id)
+                }));
+                state.filteredMarkets = state.allMarkets;
                 state.loading = false;
                 state.lastUpdate = Date.now();
             })
@@ -77,5 +106,5 @@ const marketsSlice = createSlice({
     },
 });
 
-export const { setFilteredMarkets, clearMarkets } = marketsSlice.actions;
+export const { setFilteredMarkets, clearMarkets, toggleSaveMarket, loadSavedMarketsFromStorage } = marketsSlice.actions;
 export default marketsSlice.reducer;

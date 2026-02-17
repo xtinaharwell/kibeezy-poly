@@ -1,4 +1,5 @@
 import { useDispatch, useSelector } from 'react-redux';
+import { createSelector } from 'reselect';
 import type { RootState, AppDispatch } from './store';
 
 export const useAppDispatch = () => useDispatch<AppDispatch>();
@@ -18,6 +19,13 @@ export const selectFilteredMarkets = (state: RootState) => state.markets.filtere
 export const selectMarketsLoading = (state: RootState) => state.markets.loading;
 export const selectMarketsError = (state: RootState) => state.markets.error;
 export const selectMarketsLastUpdate = (state: RootState) => state.markets.lastUpdate;
+export const selectSavedMarketIds = (state: RootState) => state.markets.savedMarketIds;
+
+// Memoized selector for saved markets to prevent unnecessary re-renders
+export const selectSavedMarkets = createSelector(
+    [selectAllMarkets],
+    (allMarkets) => allMarkets.filter(m => m.saved)
+);
 
 // Portfolio selectors
 export const selectBets = (state: RootState) => state.portfolio.bets;

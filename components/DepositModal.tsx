@@ -60,7 +60,8 @@ export default function DepositModal({ isOpen, onClose, balance }: DepositModalP
                     setStep("success");
                 } else if (data.status === "FAILED") {
                     setStep("input");
-                    setError("Payment failed. Please try again.");
+                    // Show M-Pesa specific error message or fallback to generic
+                    setError(data.error_message || "Payment failed. Please try again.");
                     setTransactionId(null);
                 }
                 // If PENDING, keep polling

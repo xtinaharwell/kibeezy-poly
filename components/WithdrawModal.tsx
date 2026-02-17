@@ -17,6 +17,11 @@ export default function WithdrawModal({ isOpen, onClose, balance, phoneNumber }:
     const [step, setStep] = useState<"input" | "processing" | "success">("input");
     const [error, setError] = useState("");
 
+    const balanceAmount = parseFloat(balance);
+    
+    // Get available preset amounts based on balance
+    const availablePresets = PRESET_AMOUNTS.filter(preset => preset <= balanceAmount);
+
     // Close on escape key
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -46,10 +51,9 @@ export default function WithdrawModal({ isOpen, onClose, balance, phoneNumber }:
         
         // Validate amount
         const withdrawAmount = parseFloat(amount);
-        const balanceAmount = parseFloat(balance);
         
         if (withdrawAmount > balanceAmount) {
-            setError("Insufficient balance");
+            setError("You can only withdraw up to your current balance");
             return;
         }
 
@@ -65,6 +69,12 @@ export default function WithdrawModal({ isOpen, onClose, balance, phoneNumber }:
         } catch (err) {
             setStep("input");
             setError("Failed to process withdrawal");
+        }
+    };
+
+    const handlePresetClick = (preset: number) => {
+        if (preset <= balanceAmount) {
+            setAmount(preset.toString());
         }
     };
 
@@ -171,17 +181,32 @@ export default function WithdrawModal({ isOpen, onClose, balance, phoneNumber }:
                         <div>
                             <label className="block text-xs font-semibold mb-2">Quick Select</label>
                             <div className="grid grid-cols-2 gap-2">
-                                {PRESET_AMOUNTS.map((preset) => (
-                                    <button
-                                        key={preset}
-                                        type="button"
-                                        onClick={() => setAmount(preset.toString())}
-                                        className="py-2 px-2 rounded-lg border border-border hover:border-black hover:bg-muted font-semibold text-xs transition-all"
-                                    >
-                                        KSh {preset}
-                                    </button>
-                                ))}
+                                {PRESET_AMOUNTS.map((preset) => {
+                                    const isAvailable = preset <= balanceAmount;
+                                    return (
+                                        <button
+                                            key={preset}
+                                            type="button"
+                                            onClick={() => handlePresetClick(preset)}
+                                            disabled={!isAvailable}
+                                            className={`py-2 px-2 rounded-lg border font-semibold text-xs transition-all ${
+                                                isAvailable
+                                                    ? 'border-border hover:border-black hover:bg-muted cursor-pointer'
+                                                    : 'border-gray-200 text-gray-400 cursor-not-allowed opacity-50'
+                                            }`}
+                                        >
+                                            KSh {preset}
+                                        </button>
+                                    );
+                                })}
                             </div>
+                        </div>
+
+                        {/* Balance Limit */}
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <p className="text-xs text-blue-700">
+                                <span className="font-semibold">Maximum Withdrawal:</span> KSh {parseFloat(balance).toLocaleString()}
+                            </p>
                         </div>
 
                         {/* M-Pesa Method */}
@@ -207,7 +232,7 @@ export default function WithdrawModal({ isOpen, onClose, balance, phoneNumber }:
 
                         {/* Info Text */}
                         <p className="text-[11px] text-center text-muted-foreground">
-                            Minimum: KSh 100
+                            Minimum: KSh 100 | Limit: KSh {parseFloat(balance).toLocaleString()}
                         </p>
                     </form>
                 </div>

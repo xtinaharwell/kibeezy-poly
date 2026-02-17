@@ -97,7 +97,6 @@ export default function Footer() {
         <div className="border-t border-gray-700 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center text-sm text-gray-400">
             <p>&copy; 2026 KASOKO. All rights reserved.</p>
-            <p>Made with ❤️ in Kenya</p>
           </div>
         </div>
       </div>

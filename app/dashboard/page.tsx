@@ -109,40 +109,37 @@ export default function Dashboard() {
 
                 {/* Portfolio & Profit/Loss Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                    {/* Portfolio Card */}
-                    <div className="lg:col-span-2">
+                    {/* Cash Balance & Action Buttons */}
+                    <div>
                         <div className="bg-white rounded-2xl p-6 border border-gray-200">
-                            <div className="grid grid-cols-2 gap-6">
-                                {/* Left: Portfolio */}
-                                <div>
-                                    <p className="text-muted-foreground text-sm font-medium mb-1">Portfolio Value</p>
-                                    <h2 className="text-3xl font-bold mb-1">KSh {parseFloat(portfolioValue).toLocaleString()}</h2>
-                                    <p className="text-xs text-muted-foreground mb-6">{statistics?.total_wagered && statistics.total_wagered > 0 ? `+${parseFloat(String(statistics.total_wagered)).toLocaleString()}` : '0.00'} (0%) past day</p>
-                                    
-                                    {/* Action Buttons */}
-                                    <div className="flex gap-3">
-                                        <button
-                                            onClick={() => setIsDepositModalOpen(true)}
-                                            className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2 text-sm"
-                                        >
-                                            <Wallet className="h-4 w-4" />
-                                            Deposit
-                                        </button>
-                                        <button
-                                            onClick={() => setIsWithdrawModalOpen(true)}
-                                            className="flex-1 px-4 py-3 border border-gray-300 text-black rounded-lg font-semibold hover:bg-gray-50 transition text-sm"
-                                        >
-                                            Withdraw
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Right: Available to Trade */}
-                                <div className="border-l border-gray-200 pl-6">
-                                    <p className="text-muted-foreground text-sm font-medium mb-1">Cash Balance</p>
-                                    <h2 className="text-3xl font-bold">KSh {parseFloat(balance).toLocaleString()}</h2>
-                                </div>
+                            <p className="text-muted-foreground text-sm font-medium mb-1">Cash Balance</p>
+                            <h2 className="text-3xl font-bold mb-6">KSh {parseFloat(balance).toLocaleString()}</h2>
+                            
+                            {/* Action Buttons */}
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setIsDepositModalOpen(true)}
+                                    className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2 text-sm"
+                                >
+                                    <Wallet className="h-4 w-4" />
+                                    Deposit
+                                </button>
+                                <button
+                                    onClick={() => setIsWithdrawModalOpen(true)}
+                                    className="flex-1 px-4 py-3 border border-gray-300 text-black rounded-lg font-semibold hover:bg-gray-50 transition text-sm"
+                                >
+                                    Withdraw
+                                </button>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Portfolio Card */}
+                    <div>
+                        <div className="bg-white rounded-2xl p-6 border border-gray-200">
+                            <p className="text-muted-foreground text-sm font-medium mb-1">Portfolio Value</p>
+                            <h2 className="text-3xl font-bold mb-1">KSh {parseFloat(portfolioValue).toLocaleString()}</h2>
+                            <p className="text-xs text-muted-foreground mb-6">{statistics?.total_wagered && statistics.total_wagered > 0 ? `+${parseFloat(String(statistics.total_wagered)).toLocaleString()}` : '0.00'} (0%) past day</p>
                         </div>
                     </div>
 
@@ -365,7 +362,7 @@ export default function Dashboard() {
             <WithdrawModal
                 isOpen={isWithdrawModalOpen}
                 onClose={() => setIsWithdrawModalOpen(false)}
-                balance={authUser?.balance || "0.00"}
+                balance={balance}
                 phoneNumber={authUser?.phone_number || ""}
             />
         </div>

@@ -3,64 +3,61 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { useAppDispatch, useAppSelector, selectUser, selectBalance, selectPortfolioBalance } from "@/lib/redux/hooks";
+import { fetchUserData } from "@/lib/redux/slices/authSlice";
 import { Search, Command, LogOut, Wallet, Home, BarChart3, Settings, ChevronDown, DollarSign, User, TrendingUp, Bell, Gift, HelpCircle } from "lucide-react";
 import DepositModal from "./DepositModal";
 
 export default function Navbar() {
     const pathname = usePathname();
-    const [user, setUser] = useState<{ full_name: string; phone_number: string; balance?: string } | null>(null);
+    const dispatch = useAppDispatch();
+    
+    // Redux state
+    const user = useAppSelector(selectUser);
+    const balance = useAppSelector(selectBalance);
+    const portfolioBalance = useAppSelector(selectPortfolioBalance);
+    
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isMobileProfileOpen, setIsMobileProfileOpen] = useState(false);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
-    const [balance, setBalance] = useState<string>("0.00");
-    const [portfolioBalance, setPortfolioBalance] = useState<string>("0.00");
 
     useEffect(() => {
         const checkUser = () => {
             const storedUser = localStorage.getItem("poly_user");
             if (storedUser) {
                 try {
-                    const parsed = JSON.parse(storedUser);
-                    setUser(parsed);
-                    // Fetch latest balance from API
-                    fetchBalance();
+                    // Fetch user data from API via Redux
+                    dispatch(fetchUserData());
                 } catch (e) {
                     localStorage.removeItem("poly_user");
-                    setUser(null);
                 }
-            } else {
-                setUser(null);
-            }
-        };
-
-        const fetchBalance = async () => {
-            try {
-                const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/dashboard/`, {
-                    method: "GET",
-                    headers: { "Content-Type": "application/json" },
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    setBalance(parseFloat(data.user.balance).toFixed(2));
-                    // Extract portfolio balance if available
-                    if (data.portfolio && data.portfolio.total_value) {
-                        setPortfolioBalance(parseFloat(data.portfolio.total_value).toFixed(2));
-                    } else {
-                        setPortfolioBalance("0.00");
-                    }
-                }
-            } catch (err) {
-                console.error("Failed to fetch balance", err);
             }
         };
 
         checkUser();
+        
+        // Listen for balance updates
+        const handleBalanceUpdate = () => {
+            dispatch(fetchUserData());
+        };
+        
         window.addEventListener("poly_auth_change", checkUser);
-        return () => window.removeEventListener("poly_auth_change", checkUser);
-    }, []);
+        window.addEventListener("poly_balance_updated", handleBalanceUpdate);
+        
+        // Refresh balance every 30 seconds for real-time updates
+        const interval = setInterval(() => {
+            if (localStorage.getItem("poly_user")) {
+                dispatch(fetchUserData());
+            }
+        }, 30000);
+        
+        return () => {
+            window.removeEventListener("poly_auth_change", checkUser);
+            window.removeEventListener("poly_balance_updated", handleBalanceUpdate);
+            clearInterval(interval);
+        };
+    }, [dispatch]);
 
     // Close profile menu when clicking outside
     useEffect(() => {

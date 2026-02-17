@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { useAppDispatch, useAppSelector, selectAllMarkets, selectMarketsLoading } from "@/lib/redux/hooks";
+import { fetchMarkets } from "@/lib/redux/slices/marketsSlice";
 import Navbar from "@/components/Navbar";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { TrendingUp, Clock, ShieldCheck, Wallet, ArrowLeft, Share2, Bookmark } from "lucide-react";
@@ -9,30 +11,33 @@ import Link from "next/link";
 
 export default function MarketDetail() {
     const { id } = useParams();
+    const dispatch = useAppDispatch();
+    
+    // Redux state
+    const allMarkets = useAppSelector(selectAllMarkets);
+    const loading = useAppSelector(selectMarketsLoading);
+    
     const [market, setMarket] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
     const [betAmount, setBetAmount] = useState("");
     const [selectedOutcome, setSelectedOutcome] = useState<"Yes" | "No">("Yes");
     const [placingBet, setPlacingBet] = useState(false);
     const [message, setMessage] = useState("");
     const [activeTab, setActiveTab] = useState<"buy" | "sell">("buy");
 
-    const fetchMarket = async () => {
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/`);
-            const data = await response.json();
-            const found = data.find((m: any) => m.id.toString() === id);
-            setMarket(found);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
+    // Fetch markets if not already loaded
     useEffect(() => {
-        fetchMarket();
-    }, [id]);
+        if (allMarkets.length === 0) {
+            dispatch(fetchMarkets());
+        }
+    }, [dispatch, allMarkets.length]);
+
+    // Set market from Redux data
+    useEffect(() => {
+        if (allMarkets.length > 0) {
+            const found = allMarkets.find((m: any) => m.id.toString() === id);
+            setMarket(found);
+        }
+    }, [allMarkets, id]);
 
     const handleBet = async (outcome: "Yes" | "No") => {
         if (!betAmount || isNaN(Number(betAmount))) {
@@ -65,7 +70,10 @@ export default function MarketDetail() {
             if (response.ok) {
                 setMessage(`Success! Placed a ${outcome} bet of KSh ${betAmount}`);
                 setBetAmount("");
-                fetchMarket(); // Refresh probability
+                
+                // Dispatch Redux events to refresh data
+                dispatch(fetchMarkets());
+                window.dispatchEvent(new Event("poly_balance_updated"));
             } else {
                 setMessage(data.error || "Failed to place bet. Try logging in.");
             }
@@ -242,16 +250,19 @@ export default function MarketDetail() {
                                 />
                                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">¢</span>
                             </div>
-                            <span className="text-xs text-gray-600">Balance KSh 0.00</span>
+                            <span className="text-xs text-gray-600">KSh. 0.00</span>
                         </div>
 
                         {/* Quick Select Buttons */}
-                        <div className="grid grid-cols-5 gap-2 mb-6">
-                            <button onClick={() => setBetAmount("1")} className="text-xs font-bold bg-gray-100 hover:bg-gray-200 p-2 rounded">+KSh 1</button>
-                            <button onClick={() => setBetAmount("5")} className="text-xs font-bold bg-gray-100 hover:bg-gray-200 p-2 rounded">+KSh 5</button>
-                            <button onClick={() => setBetAmount("10")} className="text-xs font-bold bg-gray-100 hover:bg-gray-200 p-2 rounded">+KSh 10</button>
-                            <button onClick={() => setBetAmount("100")} className="text-xs font-bold bg-gray-100 hover:bg-gray-200 p-2 rounded">+KSh 100</button>
-                            <button onClick={() => setBetAmount("1000")} className="text-xs font-bold bg-gray-100 hover:bg-gray-200 p-2 rounded">Max</button>
+                        <div className="mb-6">
+                            <div className="text-xs font-bold text-gray-600 uppercase mb-2">KSh.</div>
+                            <div className="grid grid-cols-5 gap-2">
+                                <button onClick={() => setBetAmount("100")} className="text-xs font-bold bg-gray-100 hover:bg-gray-200 p-2 rounded">100</button>
+                                <button onClick={() => setBetAmount("500")} className="text-xs font-bold bg-gray-100 hover:bg-gray-200 p-2 rounded">500</button>
+                                <button onClick={() => setBetAmount("1000")} className="text-xs font-bold bg-gray-100 hover:bg-gray-200 p-2 rounded">1000</button>
+                                <button onClick={() => setBetAmount("5000")} className="text-xs font-bold bg-gray-100 hover:bg-gray-200 p-2 rounded">5,000</button>
+                                <button onClick={() => setBetAmount("10000")} className="text-xs font-bold bg-gray-100 hover:bg-gray-200 p-2 rounded">10,000</button>
+                            </div>
                         </div>
 
                         {/* Estimated Winnings */}

@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useAppDispatch, useAppSelector, selectAllMarkets, selectFilteredMarkets, selectMarketsLoading } from "@/lib/redux/hooks";
+import { fetchMarkets, setFilteredMarkets } from "@/lib/redux/slices/marketsSlice";
 import Navbar from "@/components/Navbar";
 import MarketCard from "@/components/MarketCard";
 import { Search, Sliders } from "lucide-react";
@@ -12,33 +14,27 @@ const browseCategories = ["New", "Trending", "Popular", "Liquid", "Ending Soon"]
 const topics = ["Live Crypto", "Middle East", "Sports", "Tech", "Politics", "Crypto", "Pop Culture", "AI"];
 
 export default function Home() {
+  const dispatch = useAppDispatch();
+  
+  // Redux state
+  const allMarkets = useAppSelector(selectAllMarkets);
+  const filteredMarkets = useAppSelector(selectFilteredMarkets);
+  const loading = useAppSelector(selectMarketsLoading);
+  
   const [activeCategory, setActiveCategory] = useState("Trending");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [markets, setMarkets] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [minProbability, setMinProbability] = useState(0);
   const [maxProbability, setMaxProbability] = useState(100);
   const [sortBy, setSortBy] = useState("volume");
   const searchBoxRef = useRef<HTMLDivElement>(null);
   const filterBoxRef = useRef<HTMLDivElement>(null);
 
+  // Fetch markets on mount
   useEffect(() => {
-    const fetchMarkets = async () => {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/`);
-        const data = await response.json();
-        setMarkets(data);
-      } catch (err) {
-        console.error("Failed to fetch markets:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMarkets();
-  }, []);
+    dispatch(fetchMarkets());
+  }, [dispatch]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -59,22 +55,26 @@ export default function Home() {
     }
   }, [isSearchOpen, isFilterOpen]);
 
-  const filteredMarkets = markets.filter(m => {
-    const matchCategory = activeCategory === "Trending" || m.category === activeCategory;
-    const matchSearch = m.question.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchProbability = m.yes_probability >= minProbability && m.yes_probability <= maxProbability;
-    return matchCategory && matchSearch && matchProbability;
-  }).sort((a, b) => {
-    if (sortBy === "volume") {
-      // Extract number from volume string and sort
-      const aVol = parseInt(a.volume.replace(/\D/g, '')) || 0;
-      const bVol = parseInt(b.volume.replace(/\D/g, '')) || 0;
-      return bVol - aVol;
-    } else if (sortBy === "probability") {
-      return b.yes_probability - a.yes_probability;
-    }
-    return 0;
-  });
+  // Update filtered markets when filters change
+  useEffect(() => {
+    const filtered = allMarkets.filter(m => {
+      const matchCategory = activeCategory === "Trending" || m.category === activeCategory;
+      const matchSearch = m.question.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchProbability = m.yes_probability >= minProbability && m.yes_probability <= maxProbability;
+      return matchCategory && matchSearch && matchProbability;
+    }).sort((a, b) => {
+      if (sortBy === "volume") {
+        const aVol = parseInt(a.volume.replace(/\D/g, '')) || 0;
+        const bVol = parseInt(b.volume.replace(/\D/g, '')) || 0;
+        return bVol - aVol;
+      } else if (sortBy === "probability") {
+        return b.yes_probability - a.yes_probability;
+      }
+      return 0;
+    });
+    
+    dispatch(setFilteredMarkets(filtered));
+  }, [allMarkets, activeCategory, searchQuery, minProbability, maxProbability, sortBy, dispatch]);
 
   return (
     <div className="min-h-screen bg-white font-sans antialiased text-gray-900">

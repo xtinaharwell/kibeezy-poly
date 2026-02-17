@@ -2,18 +2,26 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useAppDispatch, useAppSelector, selectUser, selectBalance, selectPortfolioValue, selectStatistics, selectBets, selectPortfolioLoading } from "@/lib/redux/hooks";
+import { fetchDashboardData, fetchTransactionHistory } from "@/lib/redux/slices/portfolioSlice";
+import { fetchUserData } from "@/lib/redux/slices/authSlice";
 import Navbar from "@/components/Navbar";
 import DepositModal from "@/components/DepositModal";
 import { useAuth } from "@/lib/useAuth";
-import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { ArrowLeft, Wallet, TrendingUp, Award, History, LogOut, Search, Filter } from "lucide-react";
 
 export default function Dashboard() {
     const { user: authUser, loading: authLoading } = useAuth("/dashboard");
-    const [statistics, setStatistics] = useState<any>(null);
-    const [bets, setBets] = useState<any[]>([]);
-    const [transactions, setTransactions] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const dispatch = useAppDispatch();
+    
+    // Redux state
+    const user = useAppSelector(selectUser);
+    const balance = useAppSelector(selectBalance);
+    const portfolioValue = useAppSelector(selectPortfolioValue);
+    const statistics = useAppSelector(selectStatistics);
+    const bets = useAppSelector(selectBets);
+    const loading = useAppSelector(selectPortfolioLoading);
+    
     const [error, setError] = useState("");
     const [activeTab, setActiveTab] = useState<"positions" | "open-orders" | "history">("positions");
     const [profitLossPeriod, setProfitLossPeriod] = useState<"1D" | "1W" | "1M" | "ALL">("1M");
@@ -24,46 +32,16 @@ export default function Dashboard() {
     useEffect(() => {
         if (authLoading) return;
 
-        const loadDashboard = async () => {
-            try {
-                const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/dashboard/`, {
-                    method: "GET",
-                    headers: { "Content-Type": "application/json" },
-                });
+        if (!authUser) {
+            setError("Please log in");
+            return;
+        }
 
-                if (response.ok) {
-                    const data = await response.json();
-                    setStatistics(data.statistics);
-                    setBets(data.bets || []);
-                } else if (response.status === 401) {
-                    localStorage.removeItem("poly_user");
-                    localStorage.setItem("poly_redirect", "/dashboard");
-                    window.location.href = "/login";
-                    return;
-                } else {
-                    setError("Failed to load dashboard");
-                }
-
-                // Load transaction history
-                const historyResponse = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/history/`, {
-                    method: "GET",
-                    headers: { "Content-Type": "application/json" },
-                });
-
-                if (historyResponse.ok) {
-                    const data = await historyResponse.json();
-                    setTransactions(data.transactions || []);
-                }
-            } catch (err) {
-                setError("Connection error");
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadDashboard();
-    }, [authLoading]);
+        // Fetch dashboard and transaction history from Redux
+        dispatch(fetchDashboardData());
+        dispatch(fetchTransactionHistory());
+        dispatch(fetchUserData());
+    }, [authLoading, authUser, dispatch]);
 
     const handleLogout = () => {
         localStorage.removeItem("poly_user");
@@ -102,8 +80,6 @@ export default function Dashboard() {
         );
     }
 
-    const user = authUser;
-
     return (
         <div className="min-h-screen bg-[#fbfbfd] pb-20">
             <Navbar />
@@ -116,8 +92,8 @@ export default function Dashboard() {
                             <ArrowLeft className="h-5 w-5" />
                         </Link>
                         <div>
-                            <h1 className="text-3xl font-bold">Welcome, {user.full_name}</h1>
-                            <p className="text-muted-foreground text-sm">{user.phone_number}</p>
+                            <h1 className="text-3xl font-bold">Welcome, {authUser?.full_name || "User"}</h1>
+                            <p className="text-muted-foreground text-sm">{authUser?.phone_number}</p>
                         </div>
                     </div>
                     <button
@@ -137,8 +113,8 @@ export default function Dashboard() {
                             <div className="grid grid-cols-2 gap-6">
                                 {/* Left: Portfolio */}
                                 <div>
-                                    <p className="text-muted-foreground text-sm font-medium mb-1">Portfolio</p>
-                                    <h2 className="text-3xl font-bold mb-1">KSh {parseFloat(user.balance).toLocaleString()}</h2>
+                                    <p className="text-muted-foreground text-sm font-medium mb-1">Portfolio Value</p>
+                                    <h2 className="text-3xl font-bold mb-1">KSh {parseFloat(portfolioValue).toLocaleString()}</h2>
                                     <p className="text-xs text-muted-foreground mb-6">{statistics?.total_wagered > 0 ? `+${parseFloat(statistics.total_wagered).toLocaleString()}` : '0.00'} (0%) past day</p>
                                     
                                     {/* Action Buttons */}
@@ -161,8 +137,8 @@ export default function Dashboard() {
 
                                 {/* Right: Available to Trade */}
                                 <div className="border-l border-gray-200 pl-6">
-                                    <p className="text-muted-foreground text-sm font-medium mb-1">Available to trade</p>
-                                    <h2 className="text-3xl font-bold">KSh {parseFloat(user.balance).toLocaleString()}</h2>
+                                    <p className="text-muted-foreground text-sm font-medium mb-1">Cash Balance</p>
+                                    <h2 className="text-3xl font-bold">KSh {parseFloat(balance).toLocaleString()}</h2>
                                 </div>
                             </div>
                         </div>

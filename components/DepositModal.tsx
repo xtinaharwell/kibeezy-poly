@@ -16,6 +16,7 @@ export default function DepositModal({ isOpen, onClose, balance }: DepositModalP
     const [amount, setAmount] = useState("");
     const [step, setStep] = useState<"input" | "processing" | "success">("input");
     const [error, setError] = useState("");
+    const [transactionId, setTransactionId] = useState<number | null>(null);
 
     // Close on escape key
     useEffect(() => {
@@ -38,8 +39,54 @@ export default function DepositModal({ isOpen, onClose, balance }: DepositModalP
             setAmount("");
             setStep("input");
             setError("");
+            setTransactionId(null);
         }
     }, [isOpen]);
+
+    // Poll transaction status while processing
+    useEffect(() => {
+        if (step !== "processing" || !transactionId) return;
+
+        const pollStatus = async () => {
+            try {
+                const response = await fetchWithAuth(
+                    `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payments/transaction/${transactionId}/status/`,
+                    { method: "GET" }
+                );
+
+                const data = await response.json();
+
+                if (data.status === "COMPLETED") {
+                    setStep("success");
+                } else if (data.status === "FAILED") {
+                    setStep("input");
+                    setError("Payment failed. Please try again.");
+                    setTransactionId(null);
+                }
+                // If PENDING, keep polling
+            } catch (err) {
+                // Continue polling on error
+                console.error("Status check error:", err);
+            }
+        };
+
+        // Poll every 2 seconds, max 5 minutes (150 checks)
+        let checkCount = 0;
+        const interval = setInterval(() => {
+            checkCount++;
+            if (checkCount > 150) {
+                // Timeout after 5 minutes
+                clearInterval(interval);
+                setStep("input");
+                setError("Payment processing timeout. Please check your M-Pesa balance.");
+                setTransactionId(null);
+                return;
+            }
+            pollStatus();
+        }, 2000);
+
+        return () => clearInterval(interval);
+    }, [step, transactionId]);
 
     const handleDeposit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -55,14 +102,17 @@ export default function DepositModal({ isOpen, onClose, balance }: DepositModalP
 
             const data = await response.json();
             if (response.ok) {
-                setTimeout(() => setStep("success"), 2000);
+                setTransactionId(data.transaction_id);
+                // Don't set step to success here - let polling handle it
             } else {
                 setStep("input");
                 setError(data.error || "Failed to initiate STK Push");
+                setTransactionId(null);
             }
         } catch (err) {
             setStep("input");
             setError("Connection error. Is the backend running?");
+            setTransactionId(null);
         }
     };
 

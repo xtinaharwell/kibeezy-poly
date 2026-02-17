@@ -115,7 +115,7 @@ export default function Dashboard() {
                                 <div>
                                     <p className="text-muted-foreground text-sm font-medium mb-1">Portfolio Value</p>
                                     <h2 className="text-3xl font-bold mb-1">KSh {parseFloat(portfolioValue).toLocaleString()}</h2>
-                                    <p className="text-xs text-muted-foreground mb-6">{statistics?.total_wagered > 0 ? `+${parseFloat(statistics.total_wagered).toLocaleString()}` : '0.00'} (0%) past day</p>
+                                    <p className="text-xs text-muted-foreground mb-6">{statistics?.total_wagered && statistics.total_wagered > 0 ? `+${parseFloat(String(statistics.total_wagered)).toLocaleString()}` : '0.00'} (0%) past day</p>
                                     
                                     {/* Action Buttons */}
                                     <div className="flex gap-3">

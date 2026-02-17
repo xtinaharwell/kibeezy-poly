@@ -25,6 +25,7 @@ export default function MarketDetail() {
     const [message, setMessage] = useState("");
     const [activeTab, setActiveTab] = useState<"buy" | "sell">("buy");
     const [isSaved, setIsSaved] = useState(false);
+    const [shareMessage, setShareMessage] = useState("");
 
     // Fetch markets if not already loaded
     useEffect(() => {
@@ -118,6 +119,33 @@ export default function MarketDetail() {
         localStorage.setItem("poly_saved_markets", JSON.stringify(savedIds));
     };
 
+    const handleShare = async () => {
+        const shareUrl = window.location.href;
+        const shareTitle = market.question;
+        const shareText = `Check out this market: ${market.question}`;
+
+        try {
+            // Try native Web Share API first
+            if (navigator.share) {
+                await navigator.share({
+                    title: shareTitle,
+                    text: shareText,
+                    url: shareUrl,
+                });
+            } else {
+                // Fallback: Copy to clipboard
+                await navigator.clipboard.writeText(shareUrl);
+                setShareMessage("Link copied to clipboard!");
+                setTimeout(() => setShareMessage(""), 2000);
+            }
+        } catch (err) {
+            // User cancelled or error occurred
+            if ((err as any).name !== "AbortError") {
+                console.error("Share error:", err);
+            }
+        }
+    };
+
     return (
         <div className="min-h-screen bg-white pb-20 md:pb-8 font-sans">
             <Navbar />
@@ -145,9 +173,12 @@ export default function MarketDetail() {
                                 </div>
                             </div>
                             <div className="flex items-center gap-4 text-sm text-gray-600">
-                                <button className="flex items-center gap-2 hover:text-black transition">
+                                <button 
+                                    onClick={handleShare}
+                                    className="flex items-center gap-2 hover:text-black transition"
+                                >
                                     <Share2 className="h-4 w-4" />
-                                    Share
+                                    {shareMessage || "Share"}
                                 </button>
                                 <button
                                     onClick={handleSaveToggle}

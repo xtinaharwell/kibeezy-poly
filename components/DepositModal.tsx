@@ -223,10 +223,10 @@ export default function DepositModal({ isOpen, onClose, balance }: DepositModalP
                                     <button
                                         key={preset}
                                         type="button"
-                                        onClick={() => setAmount(preset.toString())}
+                                        onClick={() => setAmount(((parseFloat(amount) || 0) + preset).toString())}
                                         className="py-2 px-2 rounded-lg border border-border hover:border-black hover:bg-muted font-semibold text-xs transition-all"
                                     >
-                                        KSh {preset}
+                                        +KSh {preset}
                                     </button>
                                 ))}
                             </div>

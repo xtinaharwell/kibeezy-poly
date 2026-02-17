@@ -73,8 +73,9 @@ export default function WithdrawModal({ isOpen, onClose, balance, phoneNumber }:
     };
 
     const handlePresetClick = (preset: number) => {
-        if (preset <= balanceAmount) {
-            setAmount(preset.toString());
+        const newAmount = (parseFloat(amount) || 0) + preset;
+        if (newAmount <= balanceAmount) {
+            setAmount(newAmount.toString());
         }
     };
 
@@ -182,7 +183,8 @@ export default function WithdrawModal({ isOpen, onClose, balance, phoneNumber }:
                             <label className="block text-xs font-semibold mb-2">Quick Select</label>
                             <div className="grid grid-cols-2 gap-2">
                                 {PRESET_AMOUNTS.map((preset) => {
-                                    const isAvailable = preset <= balanceAmount;
+                                    const newAmount = (parseFloat(amount) || 0) + preset;
+                                    const isAvailable = newAmount <= balanceAmount;
                                     return (
                                         <button
                                             key={preset}
@@ -195,7 +197,7 @@ export default function WithdrawModal({ isOpen, onClose, balance, phoneNumber }:
                                                     : 'border-gray-200 text-gray-400 cursor-not-allowed opacity-50'
                                             }`}
                                         >
-                                            KSh {preset}
+                                            +KSh {preset}
                                         </button>
                                     );
                                 })}

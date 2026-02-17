@@ -10,6 +10,7 @@ export interface Market {
     end_date: string;
     resolved_outcome?: string;
     image_url?: string;
+    is_live?: boolean;
 }
 
 interface MarketsState {

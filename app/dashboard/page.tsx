@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useAppDispatch, useAppSelector, selectUser, selectBalance, selectPortfolioValue, selectStatistics, selectBets, selectPortfolioLoading } from "@/lib/redux/hooks";
+import { useAppDispatch, useAppSelector, selectUser, selectBalance, selectPortfolioValue, selectStatistics, selectBets, selectTransactions, selectPortfolioLoading } from "@/lib/redux/hooks";
 import { fetchDashboardData, fetchTransactionHistory } from "@/lib/redux/slices/portfolioSlice";
 import { fetchUserData } from "@/lib/redux/slices/authSlice";
 import Navbar from "@/components/Navbar";
@@ -20,6 +20,7 @@ export default function Dashboard() {
     const portfolioValue = useAppSelector(selectPortfolioValue);
     const statistics = useAppSelector(selectStatistics);
     const bets = useAppSelector(selectBets);
+    const transactions = useAppSelector(selectTransactions);
     const loading = useAppSelector(selectPortfolioLoading);
     
     const [error, setError] = useState("");

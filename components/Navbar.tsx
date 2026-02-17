@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAppDispatch, useAppSelector, selectUser, selectBalance, selectPortfolioBalance } from "@/lib/redux/hooks";
-import { fetchUserData } from "@/lib/redux/slices/authSlice";
+import { fetchUserData, logout } from "@/lib/redux/slices/authSlice";
 import { Search, Command, LogOut, Wallet, Home, BarChart3, Settings, ChevronDown, DollarSign, User, TrendingUp, Bell, Gift, HelpCircle } from "lucide-react";
 import DepositModal from "./DepositModal";
 
@@ -75,7 +75,7 @@ export default function Navbar() {
 
     const handleLogout = () => {
         localStorage.removeItem("poly_user");
-        setUser(null);
+        dispatch(logout());
         setIsProfileOpen(false);
         window.location.href = "/";
     };

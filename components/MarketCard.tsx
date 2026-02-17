@@ -8,11 +8,11 @@ interface MarketCardProps {
         id: number;
         question: string;
         category: string;
-        image_url: string;
+        image_url?: string;
         yes_probability: number;
         volume: string;
         end_date: string;
-        is_live: boolean;
+        is_live?: boolean;
     };
 }
 
@@ -30,7 +30,7 @@ export default function MarketCard({ market }: MarketCardProps) {
                     {/* Header */}
                     <div className="flex gap-3 items-start">
                         <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-gray-100 overflow-hidden ring-1 ring-gray-200/50">
-                            <img src={market.image_url} alt="" className="h-full w-full object-cover" />
+                            {market.image_url && <img src={market.image_url} alt="" className="h-full w-full object-cover" />}
                         </div>
                         <div className="flex-1 min-w-0">
                             <h3 className="text-sm font-semibold text-black leading-snug">
@@ -78,7 +78,7 @@ export default function MarketCard({ market }: MarketCardProps) {
             >
                 <div className="flex items-start justify-between mb-5 md:mb-6">
                     <div className="h-12 w-12 md:h-14 md:w-14 shrink-0 overflow-hidden rounded-[12px] md:rounded-[14px] bg-gray-100 ring-1 ring-gray-200/50">
-                        <img src={market.image_url} alt="" className="h-full w-full object-cover" />
+                        {market.image_url && <img src={market.image_url} alt="" className="h-full w-full object-cover" />}
                     </div>
                     {market.is_live && (
                         <div className="flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 md:px-3 py-1 md:py-1.5 ring-1 ring-red-200/50">

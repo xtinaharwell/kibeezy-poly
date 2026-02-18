@@ -105,6 +105,19 @@ export default function MarketDetail() {
 
     const estimatedWinnings = calculateEstimatedWinnings();
 
+    const formatDate = (dateString: string) => {
+        try {
+            const date = new Date(dateString);
+            return new Intl.DateTimeFormat('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            }).format(date);
+        } catch {
+            return dateString;
+        }
+    };
+
     const handleSaveToggle = () => {
         dispatch(toggleSaveMarket(Number(id)));
         
@@ -231,7 +244,7 @@ export default function MarketDetail() {
                             </div>
                             <div className="bg-gray-50 rounded-lg p-4">
                                 <span className="text-xs font-bold text-gray-600 uppercase">Closes</span>
-                                <div className="text-sm font-bold text-black mt-1">{market.end_date}</div>
+                                <div className="text-sm font-bold text-black mt-1">{formatDate(market.end_date)}</div>
                             </div>
                             <div className="bg-gray-50 rounded-lg p-4">
                                 <span className="text-xs font-bold text-gray-600 uppercase">Status</span>
@@ -252,7 +265,7 @@ export default function MarketDetail() {
                                         : "bg-gray-100 text-black hover:bg-gray-200"
                                 }`}
                             >
-                                Yes {market.yes_probability}¢
+                                Yes {market.yes_probability}%
                             </button>
                             <button
                                 onClick={() => setSelectedOutcome("No")}
@@ -262,7 +275,7 @@ export default function MarketDetail() {
                                         : "bg-gray-100 text-black hover:bg-gray-200"
                                 }`}
                             >
-                                No {noProbability}¢
+                                No {noProbability}%
                             </button>
                         </div>
 
@@ -301,20 +314,19 @@ export default function MarketDetail() {
                                     onChange={(e) => setBetAmount(e.target.value)}
                                     className="w-full text-3xl font-bold text-right p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                                 />
-                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">¢</span>
                             </div>
-                            <span className="text-xs text-gray-600">KSh. 0.00</span>
+                            <span className="text-xs text-gray-600">KSh. {betAmount ? parseFloat(betAmount).toFixed(2) : '0.00'}</span>
                         </div>
 
                         {/* Quick Select Buttons */}
                         <div className="mb-6">
-                            <div className="text-xs font-bold text-gray-600 uppercase mb-2">KSh.</div>
+                            <div className="text-xs font-bold text-gray-600 uppercase mb-2">Quick Add</div>
                             <div className="grid grid-cols-5 gap-2">
-                                <button onClick={() => setBetAmount("100")} className="text-xs font-bold bg-gray-100 hover:bg-gray-200 p-2 rounded">100</button>
-                                <button onClick={() => setBetAmount("500")} className="text-xs font-bold bg-gray-100 hover:bg-gray-200 p-2 rounded">500</button>
-                                <button onClick={() => setBetAmount("1000")} className="text-xs font-bold bg-gray-100 hover:bg-gray-200 p-2 rounded">1000</button>
-                                <button onClick={() => setBetAmount("5000")} className="text-xs font-bold bg-gray-100 hover:bg-gray-200 p-2 rounded">5,000</button>
-                                <button onClick={() => setBetAmount("10000")} className="text-xs font-bold bg-gray-100 hover:bg-gray-200 p-2 rounded">10,000</button>
+                                <button onClick={() => setBetAmount(((parseFloat(betAmount) || 0) + 100).toString())} className="text-xs font-bold bg-gray-100 hover:bg-gray-200 p-2 rounded">+100</button>
+                                <button onClick={() => setBetAmount(((parseFloat(betAmount) || 0) + 500).toString())} className="text-xs font-bold bg-gray-100 hover:bg-gray-200 p-2 rounded">+500</button>
+                                <button onClick={() => setBetAmount(((parseFloat(betAmount) || 0) + 1000).toString())} className="text-xs font-bold bg-gray-100 hover:bg-gray-200 p-2 rounded">+1K</button>
+                                <button onClick={() => setBetAmount(((parseFloat(betAmount) || 0) + 5000).toString())} className="text-xs font-bold bg-gray-100 hover:bg-gray-200 p-2 rounded">+5K</button>
+                                <button onClick={() => setBetAmount(((parseFloat(betAmount) || 0) + 10000).toString())} className="text-xs font-bold bg-gray-100 hover:bg-gray-200 p-2 rounded">+10K</button>
                             </div>
                         </div>
 
@@ -326,7 +338,7 @@ export default function MarketDetail() {
                                     KSh {estimatedWinnings.toFixed(2)}
                                 </div>
                                 <span className="text-xs text-gray-600 mt-1 block">
-                                    Avg. Price {selectedOutcome === "Yes" ? market.yes_probability : noProbability}¢
+                                    Probability {selectedOutcome === "Yes" ? market.yes_probability : noProbability}%
                                 </span>
                             </div>
                         )}
@@ -359,7 +371,7 @@ export default function MarketDetail() {
                         {/* Terms */}
                         <p className="text-xs text-gray-600 text-center mt-4">
                             By trading, you agree to the{" "}
-                            <a href="#" className="underline hover:text-black">Terms of Use</a>.
+                            <Link href="/terms-of-use" className="underline hover:text-black">Terms of Use</Link>.
                         </p>
                     </div>
                 </div>

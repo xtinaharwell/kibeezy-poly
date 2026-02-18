@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
-import { ReduxProvider } from "@/lib/redux/provider";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -17,7 +16,7 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: "KASOKO | Kenyan Prediction Market",
-  description: "Predict the future of Kenya. Politics, Sports, and Economy.",
+  description: "Predict the future & Earn. Politics, Sports, and Economy.",
 };
 
 export default function RootLayout({
@@ -28,11 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${outfit.variable} antialiased`}>
-        <ReduxProvider>
-          <Navbar />
-          {children}
-          <Footer />
-        </ReduxProvider>
+        {children}
       </body>
     </html>
   );

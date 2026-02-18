@@ -4,23 +4,41 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
-import { Plus, Edit2, CheckCircle, XCircle, Loader } from "lucide-react";
+import { Plus, Edit2, CheckCircle, XCircle, Loader, TrendingUp, Users, DollarSign, BarChart3 } from "lucide-react";
 
 export default function AdminPanel() {
     const [markets, setMarkets] = useState<any[]>([]);
+    const [selectedMarketDetails, setSelectedMarketDetails] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [activeTab, setActiveTab] = useState<"markets" | "create">("markets");
+    const [activeTab, setActiveTab] = useState<"markets" | "create" | "settlements">("markets");
     const [selectedMarket, setSelectedMarket] = useState<any>(null);
     const [resolvingMarket, setResolvingMarket] = useState<string | null>(null);
     const [outcome, setOutcome] = useState<"Yes" | "No" | "">();
+    const [settlements, setSettlements] = useState<any[]>([]);
 
     // Create market form
     const [createForm, setCreateForm] = useState({
         question: "",
+        category: "Sports",
         description: "",
         endDate: "",
     });
+
+    const formatDate = (dateString: string) => {
+        try {
+            const date = new Date(dateString);
+            return new Intl.DateTimeFormat('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).format(date);
+        } catch {
+            return dateString;
+        }
+    };
 
     useEffect(() => {
         loadMarkets();
@@ -50,8 +68,8 @@ export default function AdminPanel() {
     };
 
     const handleCreateMarket = async () => {
-        if (!createForm.question || !createForm.description) {
-            setError("Please fill all fields");
+        if (!createForm.question || !createForm.category || !createForm.description) {
+            setError("Please fill all required fields");
             return;
         }
 
@@ -59,11 +77,16 @@ export default function AdminPanel() {
             const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/markets/admin/create/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(createForm),
+                body: JSON.stringify({
+                    question: createForm.question,
+                    category: createForm.category,
+                    description: createForm.description,
+                    end_date: createForm.endDate,
+                }),
             });
 
             if (response.ok) {
-                setCreateForm({ question: "", description: "", endDate: "" });
+                setCreateForm({ question: "", category: "Sports", description: "", endDate: "" });
                 setActiveTab("markets");
                 await loadMarkets();
             } else {
@@ -91,10 +114,28 @@ export default function AdminPanel() {
 
             if (response.ok) {
                 const data = await response.json();
+                console.log("Settlement data:", data.payouts);
+                
                 // Update market status locally
                 setMarkets(markets.map((m) => 
-                    m.id === marketId ? { ...m, status: "RESOLVED", resolved_outcome: marketOutcome } : m
+                    m.id === marketId ? { 
+                        ...m, 
+                        status: "RESOLVED", 
+                        resolved_outcome: marketOutcome,
+                        settlement: data.payouts 
+                    } : m
                 ));
+                
+                // Add to settlements list
+                setSettlements([{
+                    id: marketId,
+                    market_id: marketId,
+                    market_question: selectedMarket?.question,
+                    outcome: marketOutcome,
+                    timestamp: new Date().toISOString(),
+                    ...data.payouts
+                }, ...settlements]);
+                
                 setSelectedMarket(null);
                 setOutcome("");
             } else {
@@ -159,6 +200,16 @@ export default function AdminPanel() {
                                 Markets ({markets.length})
                             </button>
                             <button
+                                onClick={() => setActiveTab("settlements")}
+                                className={`flex-1 px-6 py-4 font-bold transition-all ${
+                                    activeTab === "settlements"
+                                        ? "text-black border-b-2 border-black"
+                                        : "text-muted-foreground hover:text-black"
+                                }`}
+                            >
+                                Settlements ({markets.filter(m => m.status === 'RESOLVED').length})
+                            </button>
+                            <button
                                 onClick={() => setActiveTab("create")}
                                 className={`flex-1 px-6 py-4 font-bold transition-all flex items-center justify-center gap-2 ${
                                     activeTab === "create"
@@ -167,7 +218,7 @@ export default function AdminPanel() {
                                 }`}
                             >
                                 <Plus className="h-4 w-4" />
-                                Create Market
+                                Create
                             </button>
                         </div>
 
@@ -187,11 +238,19 @@ export default function AdminPanel() {
                                 ) : (
                                     <div className="space-y-4">
                                         {markets.map((market) => (
-                                            <div key={market.id} className="border border-border rounded-lg p-4">
-                                                <div className="flex items-start justify-between mb-3">
+                                            <div key={market.id} className="border border-border rounded-lg p-4 hover:border-black transition-all">
+                                                <div className="flex items-start justify-between mb-4">
                                                     <div className="flex-1">
                                                         <h3 className="text-lg font-bold text-black">{market.question}</h3>
-                                                        <p className="text-sm text-muted-foreground">{market.description}</p>
+                                                        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                                                            <span className="flex items-center gap-1">
+                                                                <span className="text-gray-400">Category:</span> {market.category}
+                                                            </span>
+                                                            <span className="text-gray-300">•</span>
+                                                            <span className="flex items-center gap-1">
+                                                                <span className="text-gray-400">End:</span> {market.end_date || "Not set"}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                     <span
                                                         className={`text-xs font-bold px-3 py-1 rounded-full ml-4 white-space-nowrap ${
@@ -206,29 +265,36 @@ export default function AdminPanel() {
                                                     </span>
                                                 </div>
 
-                                                <div className="grid grid-cols-3 gap-4 mb-4 py-3 border-y border-border">
-                                                    <div>
-                                                        <p className="text-xs text-muted-foreground">Total Bets</p>
-                                                        <p className="text-lg font-bold text-black">{market.total_bets}</p>
+                                                <div className="grid grid-cols-4 gap-3 mb-4 py-3 border-y border-border">
+                                                    <div className="text-center">
+                                                        <p className="text-xs text-muted-foreground mb-1">Total Bets</p>
+                                                        <p className="text-xl font-bold text-black">{market.total_bets}</p>
                                                     </div>
-                                                    <div>
-                                                        <p className="text-xs text-muted-foreground">Winners</p>
-                                                        <p className="text-lg font-bold text-apple-green">{market.winners}</p>
+                                                    <div className="text-center">
+                                                        <p className="text-xs text-muted-foreground mb-1">Yes Bets</p>
+                                                        <p className="text-xl font-bold text-apple-blue">{market.yes_bets}</p>
                                                     </div>
-                                                    <div>
-                                                        <p className="text-xs text-muted-foreground">Losers</p>
-                                                        <p className="text-lg font-bold text-apple-red">{market.losers}</p>
+                                                    <div className="text-center">
+                                                        <p className="text-xs text-muted-foreground mb-1">No Bets</p>
+                                                        <p className="text-xl font-bold text-apple-red">{market.no_bets}</p>
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <p className="text-xs text-muted-foreground mb-1">Wagered</p>
+                                                        <p className="text-lg font-bold text-black">KSh {parseFloat(market.total_wagered).toLocaleString()}</p>
                                                     </div>
                                                 </div>
 
                                                 {market.status === "RESOLVED" && market.resolved_outcome && (
                                                     <div className="mb-4 p-3 bg-apple-green/5 border border-apple-green/20 rounded">
                                                         <p className="text-xs text-muted-foreground mb-1">Resolved Outcome</p>
-                                                        <p className="font-bold text-black">{market.resolved_outcome}</p>
+                                                        <div className="flex items-center justify-between">
+                                                            <p className="font-bold text-black">{market.resolved_outcome}</p>
+                                                            <p className="text-xs text-muted-foreground">{market.resolved_at && new Date(market.resolved_at).toLocaleDateString()}</p>
+                                                        </div>
                                                     </div>
                                                 )}
 
-                                                {market.status === "OPEN" && (
+                                                {market.status === "OPEN" && market.total_bets > 0 && (
                                                     <button
                                                         onClick={() => setSelectedMarket(market)}
                                                         className="w-full px-4 py-2 bg-black text-white rounded-lg font-bold transition-all hover:opacity-90"
@@ -236,6 +302,58 @@ export default function AdminPanel() {
                                                         Resolve Market
                                                     </button>
                                                 )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Settlements Tab */}
+                        {activeTab === "settlements" && (
+                            <div className="p-6">
+                                {markets.filter(m => m.status === 'RESOLVED').length === 0 ? (
+                                    <div className="text-center py-12">
+                                        <p className="text-muted-foreground">No settled markets yet</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {markets.filter(m => m.status === 'RESOLVED').map((market) => (
+                                            <div key={market.id} className="border border-border rounded-lg p-4">
+                                                <div className="flex items-start justify-between mb-4">
+                                                    <div>
+                                                        <h3 className="text-lg font-bold text-black">{market.question}</h3>
+                                                        <p className="text-sm text-muted-foreground mt-1">Resolved on {market.resolved_at ? formatDate(market.resolved_at) : 'Unknown'}</p>
+                                                    </div>
+                                                    <span className={`text-sm font-bold px-3 py-1 rounded-full ${
+                                                        market.resolved_outcome === 'Yes' ? 'bg-apple-blue/10 text-apple-blue' : 'bg-apple-red/10 text-apple-red'
+                                                    }`}>
+                                                        Outcome: {market.resolved_outcome}
+                                                    </span>
+                                                </div>
+
+                                                <div className="grid grid-cols-5 gap-3 bg-muted/50 p-3 rounded-lg mb-4">
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground mb-1">Total Wagered</p>
+                                                        <p className="font-bold text-black">KSh {parseFloat(market.total_wagered).toLocaleString()}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground mb-1">Winners</p>
+                                                        <p className="font-bold text-apple-green">{market.yes_bets + market.no_bets - market.no_bets}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground mb-1">Platform Fee</p>
+                                                        <p className="font-bold text-black">10%</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground mb-1">Paid Out</p>
+                                                        <p className="font-bold text-apple-green">90%</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground mb-1">Status</p>
+                                                        <p className="font-bold text-apple-green flex items-center gap-1"><CheckCircle className="h-4 w-4" /> Complete</p>
+                                                    </div>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -258,6 +376,23 @@ export default function AdminPanel() {
                                             }
                                             className="w-full px-4 py-3 border border-border rounded-lg font-bold focus:outline-none focus:ring-2 focus:ring-black"
                                         />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-black mb-2">Category</label>
+                                        <select
+                                            value={createForm.category}
+                                            onChange={(e) =>
+                                                setCreateForm({ ...createForm, category: e.target.value })
+                                            }
+                                            className="w-full px-4 py-3 border border-border rounded-lg font-bold focus:outline-none focus:ring-2 focus:ring-black bg-white"
+                                        >
+                                            <option value="Sports">Sports</option>
+                                            <option value="Politics">Politics</option>
+                                            <option value="Economy">Economy</option>
+                                            <option value="Crypto">Crypto</option>
+                                            <option value="Environment">Environment</option>
+                                        </select>
                                     </div>
 
                                     <div>

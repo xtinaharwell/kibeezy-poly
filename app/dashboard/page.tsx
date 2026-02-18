@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useAppDispatch, useAppSelector, selectUser, selectBalance, selectPortfolioValue, selectStatistics, selectBets, selectTransactions, selectPortfolioLoading } from "@/lib/redux/hooks";
+import { useAppDispatch, useAppSelector, selectUser, selectBalance, selectPortfolioValue, selectStatistics, selectBets, selectTransactions, selectPortfolioLoading, selectPortfolioError } from "@/lib/redux/hooks";
 import { fetchDashboardData, fetchTransactionHistory } from "@/lib/redux/slices/portfolioSlice";
 import { fetchUserData } from "@/lib/redux/slices/authSlice";
 import Navbar from "@/components/Navbar";
@@ -14,6 +14,7 @@ import { ArrowLeft, Wallet, TrendingUp, Award, History, LogOut, Search, Filter }
 export default function Dashboard() {
     const { user: authUser, loading: authLoading } = useAuth("/dashboard");
     const dispatch = useAppDispatch();
+    const fetchAttemptedRef = useRef(false);
     
     // Redux state
     const user = useAppSelector(selectUser);
@@ -23,6 +24,7 @@ export default function Dashboard() {
     const bets = useAppSelector(selectBets);
     const transactions = useAppSelector(selectTransactions);
     const loading = useAppSelector(selectPortfolioLoading);
+    const portfolioError = useAppSelector(selectPortfolioError);
     
     const [error, setError] = useState("");
     const [activeTab, setActiveTab] = useState<"positions" | "open-orders" | "history">("positions");
@@ -39,11 +41,15 @@ export default function Dashboard() {
             return;
         }
 
-        // Fetch dashboard and transaction history from Redux
+        // Only fetch once per user session
+        if (fetchAttemptedRef.current) return;
+        fetchAttemptedRef.current = true;
+
+        // Fetch dashboard and transaction history from Redux (only once per user)
         dispatch(fetchDashboardData());
         dispatch(fetchTransactionHistory());
         dispatch(fetchUserData());
-    }, [authLoading, authUser, dispatch]);
+    }, [authUser?.phone_number, authLoading, dispatch]);
 
     const handleLogout = () => {
         localStorage.removeItem("poly_user");

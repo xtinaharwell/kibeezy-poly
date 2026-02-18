@@ -2,6 +2,7 @@
 
 import { X, Wallet, CheckCircle2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 interface WithdrawModalProps {
     isOpen: boolean;
@@ -57,18 +58,37 @@ export default function WithdrawModal({ isOpen, onClose, balance, phoneNumber }:
             return;
         }
 
+        if (withdrawAmount < 100) {
+            setError("Minimum withdrawal is KSh 100");
+            return;
+        }
+
         setStep("processing");
         setError("");
 
         try {
-            // Simulate API call - replace with actual endpoint
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            // If successful, show success state
-            setTimeout(() => setStep("success"), 2000);
+            // Call withdrawal API endpoint
+            const response = await fetchWithAuth(
+                `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payments/withdraw/`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ amount: withdrawAmount }),
+                }
+            );
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Show success state after brief processing animation
+                setTimeout(() => setStep("success"), 1500);
+            } else {
+                setStep("input");
+                setError(data.error || data.customer_message || "Failed to process withdrawal");
+            }
         } catch (err) {
             setStep("input");
-            setError("Failed to process withdrawal");
+            setError("Connection error. Please check your internet and try again.");
         }
     };
 

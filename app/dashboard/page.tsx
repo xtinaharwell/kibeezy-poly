@@ -27,7 +27,7 @@ export default function Dashboard() {
     const portfolioError = useAppSelector(selectPortfolioError);
     
     const [error, setError] = useState("");
-    const [activeTab, setActiveTab] = useState<"positions" | "open-orders" | "history">("positions");
+    const [activeTab, setActiveTab] = useState<"active" | "positions" | "open-orders" | "history">("active");
     const [profitLossPeriod, setProfitLossPeriod] = useState<"1D" | "1W" | "1M" | "ALL">("1M");
     const [searchQuery, setSearchQuery] = useState("");
     const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
@@ -189,7 +189,7 @@ export default function Dashboard() {
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
                             {/* Tabs */}
                             <div className="flex gap-6">
-                                {["positions", "open-orders", "history"].map((tab) => (
+                                {["active", "positions", "open-orders", "history"].map((tab) => (
                                     <button
                                         key={tab}
                                         onClick={() => setActiveTab(tab as any)}
@@ -199,7 +199,7 @@ export default function Dashboard() {
                                                 : "border-transparent text-muted-foreground hover:text-black"
                                         }`}
                                     >
-                                        {tab.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+                                        {tab === "active" ? "Active Bets" : tab.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
                                     </button>
                                 ))}
                             </div>
@@ -226,6 +226,66 @@ export default function Dashboard() {
 
                     {/* Table Content */}
                     <div className="p-6">
+                        {activeTab === "active" && (
+                            <div>
+                                {bets.filter(b => b.result === 'PENDING').length > 0 ? (
+                                    <div className="space-y-4">
+                                        {bets.filter(b => b.result === 'PENDING').map((bet) => {
+                                            // Calculate potential winnings
+                                            const potentialWin = (Number(bet.amount) * bet.entry_probability) / 100;
+                                            return (
+                                                <div key={bet.id} className="border border-gray-200 rounded-lg p-4 hover:border-black transition-all">
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div className="flex-1">
+                                                            <h3 className="font-bold text-black text-lg">{bet.market_question}</h3>
+                                                            <p className="text-sm text-muted-foreground mt-1">
+                                                                Bet on <span className={`font-semibold ${bet.outcome === 'Yes' ? 'text-green-600' : 'text-red-600'}`}>{bet.outcome}</span>
+                                                            </p>
+                                                        </div>
+                                                        <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-50 text-blue-700">
+                                                            PENDING
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-4 gap-3 bg-gray-50 p-3 rounded-lg">
+                                                        <div>
+                                                            <p className="text-xs text-muted-foreground mb-1 font-medium">Bet Amount</p>
+                                                            <p className="font-bold text-black">KSh {Number(bet.amount).toLocaleString()}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs text-muted-foreground mb-1 font-medium">Probability</p>
+                                                            <p className="font-bold text-black">{bet.entry_probability}%</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs text-muted-foreground mb-1 font-medium">Potential Win</p>
+                                                            <p className="font-bold text-green-600">KSh {potentialWin.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs text-muted-foreground mb-1 font-medium">Placed</p>
+                                                            <p className="font-bold text-black">{new Date(bet.timestamp).toLocaleDateString()}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <Link
+                                                        href={`/markets/${bet.market_id}`}
+                                                        className="mt-3 w-full inline-block text-center py-2 border border-gray-300 rounded-lg text-sm font-bold hover:bg-gray-50 transition-all"
+                                                    >
+                                                        View Market
+                                                    </Link>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="py-12 text-center">
+                                        <p className="text-muted-foreground mb-4">No active bets yet</p>
+                                        <Link href="/" className="text-apple-blue hover:underline font-bold">
+                                            Start betting on markets
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         {activeTab === "positions" && (
                             <div>
                                 {bets.filter(b => b.market_question?.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 ? (

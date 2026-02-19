@@ -7,6 +7,7 @@ export interface User {
     full_name: string;
     balance: string;
     kyc_verified: boolean;
+    date_joined?: string;
 }
 
 interface AuthState {

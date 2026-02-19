@@ -298,6 +298,14 @@ export default function Navbar() {
                                             Rewards
                                         </Link>
                                         <Link
+                                            href="/profile"
+                                            onClick={() => setIsMobileProfileOpen(false)}
+                                            className="flex items-center gap-2 px-3 py-2 rounded-md text-black font-bold text-sm hover:bg-muted transition-all"
+                                        >
+                                            <User className="h-4 w-4" />
+                                            Profile
+                                        </Link>
+                                        <Link
                                             href="/how-it-works"
                                             onClick={() => setIsMobileProfileOpen(false)}
                                             className="flex items-center gap-2 px-3 py-2 rounded-md text-black font-bold text-sm hover:bg-muted transition-all"
@@ -368,6 +376,14 @@ export default function Navbar() {
                                         >
                                             <Gift className="h-4 w-4" />
                                             Rewards
+                                        </Link>
+                                        <Link
+                                            href="/profile"
+                                            onClick={() => setIsProfileOpen(false)}
+                                            className="flex items-center gap-2 px-3 py-2 rounded-md text-black font-bold text-sm hover:bg-muted transition-all"
+                                        >
+                                            <User className="h-4 w-4" />
+                                            Profile
                                         </Link>
                                         <Link
                                             href="/how-it-works"

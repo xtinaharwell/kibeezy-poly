@@ -1,0 +1,369 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Navbar from "@/components/Navbar";
+import { useAppDispatch, useAppSelector, selectUser } from "@/lib/redux/hooks";
+import { fetchUserData } from "@/lib/redux/slices/authSlice";
+import { ArrowLeft, Edit2, Check, X, TrendingUp, TrendingDown, DollarSign, Calendar, Phone, Mail } from "lucide-react";
+
+interface Transaction {
+    id: number;
+    type: 'DEPOSIT' | 'WITHDRAWAL' | 'PAYOUT' | 'BET';
+    amount: string;
+    status: 'PENDING' | 'COMPLETED' | 'FAILED';
+    description: string;
+    created_at: string;
+}
+
+export const dynamic = "force-dynamic";
+
+export default function Profile() {
+    const router = useRouter();
+    const dispatch = useAppDispatch();
+    const user = useAppSelector(selectUser);
+
+    const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState({ full_name: '' });
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [activeHistoryTab, setActiveHistoryTab] = useState<'all' | 'deposits' | 'withdrawals'>('all');
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        if (!user) {
+            router.push('/login');
+            return;
+        }
+
+        setEditData({ full_name: user.full_name || '' });
+        fetchTransactions();
+    }, [user, router]);
+
+    const fetchTransactions = async () => {
+        try {
+            setLoading(true);
+            const storedUser = localStorage.getItem('poly_user');
+            if (!storedUser) return;
+
+            const { phone_number } = JSON.parse(storedUser);
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/transactions/?phone_number=${phone_number}`,
+                {
+                    headers: {
+                        'X-User-Phone-Number': phone_number,
+                    },
+                }
+            );
+
+            if (response.ok) {
+                const data = await response.json();
+                setTransactions(Array.isArray(data) ? data : data.transactions || []);
+            }
+        } catch (error) {
+            console.error('Failed to fetch transactions:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSaveProfile = async () => {
+        if (!editData.full_name.trim()) {
+            alert('Full name is required');
+            return;
+        }
+
+        try {
+            setIsSaving(true);
+            const storedUser = localStorage.getItem('poly_user');
+            if (!storedUser) return;
+
+            const { phone_number } = JSON.parse(storedUser);
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/update-profile/`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Phone-Number': phone_number,
+                    },
+                    body: JSON.stringify({
+                        full_name: editData.full_name,
+                    }),
+                }
+            );
+
+            if (response.ok) {
+                // Refresh user data
+                dispatch(fetchUserData());
+                setIsEditing(false);
+            } else {
+                alert('Failed to update profile');
+            }
+        } catch (error) {
+            console.error('Failed to update profile:', error);
+            alert('Error updating profile');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const getTransactionIcon = (type: string) => {
+        switch (type) {
+            case 'DEPOSIT':
+                return <TrendingUp className="h-5 w-5 text-green-600" />;
+            case 'WITHDRAWAL':
+                return <TrendingDown className="h-5 w-5 text-red-600" />;
+            case 'PAYOUT':
+                return <DollarSign className="h-5 w-5 text-blue-600" />;
+            case 'BET':
+                return <DollarSign className="h-5 w-5 text-orange-600" />;
+            default:
+                return <DollarSign className="h-5 w-5" />;
+        }
+    };
+
+    const getTransactionColor = (type: string) => {
+        switch (type) {
+            case 'DEPOSIT':
+            case 'PAYOUT':
+                return 'text-green-600';
+            case 'WITHDRAWAL':
+            case 'BET':
+                return 'text-red-600';
+            default:
+                return 'text-gray-600';
+        }
+    };
+
+    const filteredTransactions = transactions.filter((txn) => {
+        if (activeHistoryTab === 'deposits') return txn.type === 'DEPOSIT';
+        if (activeHistoryTab === 'withdrawals') return txn.type === 'WITHDRAWAL';
+        return true;
+    });
+
+    const depositTransactions = transactions.filter(t => t.type === 'DEPOSIT').length;
+    const withdrawalTransactions = transactions.filter(t => t.type === 'WITHDRAWAL').length;
+    const totalDeposited = transactions
+        .filter(t => t.type === 'DEPOSIT' && t.status === 'COMPLETED')
+        .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    const totalWithdrawn = transactions
+        .filter(t => t.type === 'WITHDRAWAL' && t.status === 'COMPLETED')
+        .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+
+    if (!user) {
+        return (
+            <div className="min-h-screen bg-white">
+                <Navbar />
+                <main className="mx-auto max-w-[900px] px-6 pt-32 pb-20">
+                    <p className="text-muted-foreground">Loading...</p>
+                </main>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-white">
+            <Navbar />
+
+            <main className="mx-auto max-w-[900px] px-6 pt-32 pb-20">
+                {/* Header */}
+                <div className="flex items-center gap-4 mb-8">
+                    <Link href="/dashboard" className="p-2 hover:bg-gray-100 rounded-lg transition">
+                        <ArrowLeft className="h-5 w-5" />
+                    </Link>
+                    <h1 className="text-4xl font-extrabold tracking-tight">Profile & Settings</h1>
+                </div>
+
+                {/* Profile Card */}
+                <div className="bg-white border border-gray-200 rounded-2xl p-8 mb-8">
+                    <div className="flex items-start justify-between mb-6">
+                        <h2 className="text-2xl font-bold">Account Information</h2>
+                        {!isEditing && (
+                            <button
+                                onClick={() => setIsEditing(true)}
+                                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium text-sm"
+                            >
+                                <Edit2 className="h-4 w-4" />
+                                Edit Profile
+                            </button>
+                        )}
+                    </div>
+
+                    {!isEditing ? (
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3">
+                                <Phone className="h-5 w-5 text-muted-foreground" />
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Phone Number</p>
+                                    <p className="font-semibold text-black">{user.phone_number}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Mail className="h-5 w-5 text-muted-foreground" />
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Full Name</p>
+                                    <p className="font-semibold text-black">{user.full_name || 'Not set'}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <DollarSign className="h-5 w-5 text-muted-foreground" />
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Current Balance</p>
+                                    <p className="font-bold text-black text-lg">KSh {parseFloat(user.balance || '0').toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Calendar className="h-5 w-5 text-muted-foreground" />
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Member Since</p>
+                                    <p className="font-semibold text-black">{user.date_joined ? new Date(user.date_joined).toLocaleDateString() : 'N/A'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-muted-foreground mb-2">Full Name</label>
+                                <input
+                                    type="text"
+                                    value={editData.full_name}
+                                    onChange={(e) => setEditData({ ...editData, full_name: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
+                                />
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={handleSaveProfile}
+                                    disabled={isSaving}
+                                    className="flex items-center gap-2 px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition font-medium disabled:opacity-50"
+                                >
+                                    <Check className="h-4 w-4" />
+                                    Save Changes
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setIsEditing(false);
+                                        setEditData({ full_name: user.full_name || '' });
+                                    }}
+                                    className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium"
+                                >
+                                    <X className="h-4 w-4 inline mr-2" />
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Balance Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <div className="border border-gray-200 rounded-xl p-6">
+                        <p className="text-sm text-muted-foreground mb-2">Total Deposited</p>
+                        <p className="text-2xl font-bold text-green-600">KSh {totalDeposited.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                        <p className="text-xs text-muted-foreground mt-2">{depositTransactions} transactions</p>
+                    </div>
+                    <div className="border border-gray-200 rounded-xl p-6">
+                        <p className="text-sm text-muted-foreground mb-2">Total Withdrawn</p>
+                        <p className="text-2xl font-bold text-red-600">KSh {totalWithdrawn.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                        <p className="text-xs text-muted-foreground mt-2">{withdrawalTransactions} transactions</p>
+                    </div>
+                    <div className="border border-gray-200 rounded-xl p-6">
+                        <p className="text-sm text-muted-foreground mb-2">Current Balance</p>
+                        <p className="text-2xl font-bold text-black">KSh {parseFloat(user.balance || '0').toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                        <p className="text-xs text-muted-foreground mt-2">Available</p>
+                    </div>
+                </div>
+
+                {/* Transaction History */}
+                <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+                    {/* Tabs & Header */}
+                    <div className="border-b border-gray-200 p-6">
+                        <h2 className="text-2xl font-bold mb-4">Transaction History</h2>
+                        <div className="flex gap-4">
+                            {(['all', 'deposits', 'withdrawals'] as const).map((tab) => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveHistoryTab(tab)}
+                                    className={`pb-2 font-semibold text-sm transition-colors border-b-2 ${
+                                        activeHistoryTab === tab
+                                            ? 'border-black text-black'
+                                            : 'border-transparent text-muted-foreground hover:text-black'
+                                    }`}
+                                >
+                                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Transactions Table */}
+                    <div className="p-6">
+                        {loading ? (
+                            <div className="py-12 text-center">
+                                <p className="text-muted-foreground">Loading transactions...</p>
+                            </div>
+                        ) : filteredTransactions.length > 0 ? (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-gray-200">
+                                            <th className="text-left py-3 px-4 font-semibold text-muted-foreground">TYPE</th>
+                                            <th className="text-left py-3 px-4 font-semibold text-muted-foreground">DESCRIPTION</th>
+                                            <th className="text-left py-3 px-4 font-semibold text-muted-foreground">AMOUNT</th>
+                                            <th className="text-left py-3 px-4 font-semibold text-muted-foreground">STATUS</th>
+                                            <th className="text-left py-3 px-4 font-semibold text-muted-foreground">DATE</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredTransactions.map((txn) => (
+                                            <tr key={txn.id} className="border-b border-gray-100 hover:bg-gray-50 transition">
+                                                <td className="py-4 px-4">
+                                                    <div className="flex items-center gap-2">
+                                                        {getTransactionIcon(txn.type)}
+                                                        <span className="text-xs font-semibold px-2 py-1 rounded bg-gray-100 text-gray-700">
+                                                            {txn.type}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-4 text-sm">{txn.description || '—'}</td>
+                                                <td className="py-4 px-4 text-sm font-medium">
+                                                    <span className={getTransactionColor(txn.type)}>
+                                                        {txn.type === 'DEPOSIT' || txn.type === 'PAYOUT' ? '+' : '-'} KSh {parseFloat(txn.amount).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                                    </span>
+                                                </td>
+                                                <td className="py-4 px-4">
+                                                    <span className={`text-xs font-medium px-2 py-1 rounded ${
+                                                        txn.status === 'COMPLETED'
+                                                            ? 'bg-green-50 text-green-700'
+                                                            : txn.status === 'PENDING'
+                                                            ? 'bg-yellow-50 text-yellow-700'
+                                                            : 'bg-red-50 text-red-700'
+                                                    }`}>
+                                                        {txn.status}
+                                                    </span>
+                                                </td>
+                                                <td className="py-4 px-4 text-sm text-muted-foreground">
+                                                    {new Date(txn.created_at).toLocaleDateString()}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="py-12 text-center">
+                                <p className="text-muted-foreground">
+                                    {activeHistoryTab === 'deposits' && 'No deposits yet'}
+                                    {activeHistoryTab === 'withdrawals' && 'No withdrawals yet'}
+                                    {activeHistoryTab === 'all' && 'No transactions yet'}
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </main>
+        </div>
+    );
+}

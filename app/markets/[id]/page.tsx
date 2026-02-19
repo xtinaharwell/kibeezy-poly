@@ -26,6 +26,8 @@ export default function MarketDetail() {
     const [activeTab, setActiveTab] = useState<"buy" | "sell">("buy");
     const [isSaved, setIsSaved] = useState(false);
     const [shareMessage, setShareMessage] = useState("");
+    const [showReceipt, setShowReceipt] = useState(false);
+    const [lastBet, setLastBet] = useState<any>(null);
 
     // Fetch markets if not already loaded
     useEffect(() => {
@@ -72,8 +74,24 @@ export default function MarketDetail() {
 
             const data = await response.json();
             if (response.ok) {
-                setMessage(`Success! Placed a ${outcome} bet of KSh ${betAmount}`);
+                // Store bet details for receipt
+                const userStr = localStorage.getItem("poly_user");
+                const userData = userStr ? JSON.parse(userStr) : {};
+                
+                setLastBet({
+                    id: Math.random().toString(36).substr(2, 9),
+                    market: market.question,
+                    outcome,
+                    amount: betAmount,
+                    probability: selectedOutcome === "Yes" ? market.yes_probability : 100 - market.yes_probability,
+                    potentialWinnings: (Number(betAmount) * (selectedOutcome === "Yes" ? market.yes_probability : 100 - market.yes_probability)) / 100,
+                    phoneNumber: userData.phone_number,
+                    timestamp: new Date(),
+                });
+                
+                setShowReceipt(true);
                 setBetAmount("");
+                setMessage("");
                 
                 // Dispatch Redux events to refresh data
                 dispatch(fetchMarkets());
@@ -376,6 +394,85 @@ export default function MarketDetail() {
                     </div>
                 </div>
             </main>
+
+            {/* Bet Receipt Modal */}
+            {showReceipt && lastBet && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-in fade-in">
+                    <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-xl">
+                        {/* Header */}
+                        <div className="text-center mb-6">
+                            <div className="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+                                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <h2 className="text-2xl font-bold text-black">Bet Confirmed!</h2>
+                            <p className="text-sm text-gray-600 mt-1">Your bet has been accepted</p>
+                        </div>
+
+                        {/* Details */}
+                        <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-3">
+                            <div className="flex justify-between items-start">
+                                <span className="text-sm text-gray-600 font-medium">Market</span>
+                                <span className="text-sm font-bold text-black text-right max-w-[200px]">{lastBet.market}</span>
+                            </div>
+                            <div className="border-t border-gray-200 pt-3 flex justify-between items-center">
+                                <span className="text-sm text-gray-600 font-medium">Outcome</span>
+                                <span className={`text-sm font-bold px-3 py-1 rounded-full ${
+                                    lastBet.outcome === 'Yes' 
+                                        ? 'bg-green-100 text-green-700' 
+                                        : 'bg-red-100 text-red-700'
+                                }`}>
+                                    {lastBet.outcome}
+                                </span>
+                            </div>
+                            <div className="border-t border-gray-200 pt-3 flex justify-between items-center">
+                                <span className="text-sm text-gray-600 font-medium">Probability</span>
+                                <span className="text-sm font-bold text-black">{lastBet.probability}%</span>
+                            </div>
+                        </div>
+
+                        {/* Amount & Potential Win */}
+                        <div className="grid grid-cols-2 gap-4 mb-6">
+                            <div>
+                                <p className="text-xs text-gray-600 font-medium mb-1 uppercase">Bet Amount</p>
+                                <p className="text-2xl font-bold text-black">KSh {Number(lastBet.amount).toLocaleString()}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-600 font-medium mb-1 uppercase">To Win</p>
+                                <p className="text-2xl font-bold text-green-600">KSh {lastBet.potentialWinnings.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                            </div>
+                        </div>
+
+                        {/* Bet Reference */}
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center mb-6">
+                            <p className="text-xs text-blue-600 font-medium">BET ID</p>
+                            <p className="text-sm font-bold text-blue-900 font-mono">{lastBet.id}</p>
+                        </div>
+
+                        {/* Time */}
+                        <p className="text-xs text-gray-500 text-center mb-6">
+                            {lastBet.timestamp.toLocaleTimeString()} on {lastBet.timestamp.toLocaleDateString()}
+                        </p>
+
+                        {/* Buttons */}
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => setShowReceipt(false)}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-all"
+                            >
+                                Continue Trading
+                            </button>
+                            <Link
+                                href="/dashboard"
+                                className="w-full bg-gray-100 hover:bg-gray-200 text-black font-bold py-3 rounded-lg transition-all text-center"
+                            >
+                                View All Bets
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

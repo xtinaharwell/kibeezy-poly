@@ -1,7 +1,10 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { TrendingUp, User, Clock, ArrowUpRight } from "lucide-react";
+
+export const dynamic = "force-dynamic";
 
 const activities = [
     {
